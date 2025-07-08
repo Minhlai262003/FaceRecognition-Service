@@ -15,9 +15,7 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 @RequiredArgsConstructor
 public class UserService {
-
     private final UserRepository userRepository;
-
     private final RestTemplate restTemplate = new RestTemplate();
     private final String pythonApiBaseUrl = "http://localhost:5000/api"; // Flask API base URL
 
@@ -61,4 +59,4 @@ public class UserService {
         return userRepository.save(existingUser);
     }
 
-}
+    }

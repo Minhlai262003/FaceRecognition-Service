@@ -23,7 +23,6 @@ public class UserController {
         ApiResponse<Object> response = new ApiResponse<>(200, "Delete success", null, LocalDateTime.now());
         return ResponseEntity.ok(response);
     }
-
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<Users>> updateUser(
             @PathVariable Long id,
@@ -40,5 +39,4 @@ public class UserController {
 
         return ResponseEntity.ok(response);
     }
-
-}
+    }
