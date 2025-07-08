@@ -1,5 +1,7 @@
 package com.enclave.FaceRecognition.service;
 
+import com.enclave.FaceRecognition.dto.UserUpdateDTO;
+import com.enclave.FaceRecognition.entity.Users;
 import com.enclave.FaceRecognition.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,7 +24,7 @@ public class UserService {
     public void deleteUserById(Long id) {
         // 1. Kiểm tra user có tồn tại
         if (!userRepository.existsById(id)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy user với ID = " + id);
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No find user with ID = " + id);
         }
 
         // 2. Gọi Flask API để xóa ảnh
@@ -39,6 +41,24 @@ public class UserService {
 
         // 3. Xoá user trong DB
         userRepository.deleteById(id);
-        log.info("Đã xoá user với ID = {}", id);
+        log.info("Deleted with ID = {}", id);
     }
+
+    public Users updateUser(Long id, UserUpdateDTO dto) {
+        Users existingUser = userRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy user với ID = " + id));
+
+        existingUser.setFirstName(dto.getFirstName());
+        existingUser.setLastName(dto.getLastName());
+        existingUser.setEmail(dto.getEmail());
+        existingUser.setGender(dto.getGender());
+        existingUser.setRole(dto.getRole());
+
+        if (dto.getPassword() != null && !dto.getPassword().isEmpty()) {
+            existingUser.setPassword(dto.getPassword());
+        }
+
+        return userRepository.save(existingUser);
+    }
+
 }
