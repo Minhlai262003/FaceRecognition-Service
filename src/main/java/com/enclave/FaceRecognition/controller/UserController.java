@@ -40,5 +40,3 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
     }
-public class UserController {
-}
