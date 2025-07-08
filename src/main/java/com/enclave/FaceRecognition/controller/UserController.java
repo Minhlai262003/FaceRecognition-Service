@@ -1,21 +1,25 @@
 package com.enclave.FaceRecognition.controller;
 
+import com.enclave.FaceRecognition.dto.Response.ApiResponse;
+import com.enclave.FaceRecognition.entity.Users;
 import com.enclave.FaceRecognition.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.apache.catalina.User;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-    
+
+import java.time.LocalDateTime;
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/users")
 @RequiredArgsConstructor
 public class UserController {
 
     private final UserService userService;
 
-    @DeleteMapping("/users/{id}")
-    public ResponseEntity<String> deleteUser(@PathVariable Long id) {
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Object>> deleteUser(@PathVariable Long id) {
         userService.deleteUserById(id);
-        return ResponseEntity.ok("Xoá user thành công!");
+        ApiResponse<Object> response = new ApiResponse<>(200, "Delete success", null, LocalDateTime.now());
+        return ResponseEntity.ok(response);
     }
-
 }
