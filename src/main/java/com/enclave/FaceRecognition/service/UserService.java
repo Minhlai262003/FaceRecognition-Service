@@ -1,5 +1,6 @@
 package com.enclave.FaceRecognition.service;
 
+<<<<<<< src/main/java/com/enclave/FaceRecognition/service/UserService.java
 import com.enclave.FaceRecognition.dto.UserUpdateDTO;
 import com.enclave.FaceRecognition.entity.Users;
 import com.enclave.FaceRecognition.repository.UserRepository;
@@ -60,3 +61,5 @@ public class UserService {
     }
 
     }
+public class UserService {
+}

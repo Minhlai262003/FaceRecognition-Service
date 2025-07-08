@@ -3,6 +3,7 @@ server:
   servlet:
     context-path: /face-detection
 
+
 face-detection:
   python-api-url: http://localhost:5000
 
@@ -12,4 +13,3 @@ spring:
     username: root
     password:
     driver-class-name: com.mysql.cj.jdbc.Driver
-
