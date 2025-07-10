@@ -1,62 +1,116 @@
 package com.enclave.FaceRecognition.service;
 
-import com.enclave.FaceRecognition.dto.UserUpdateDTO;
-import com.enclave.FaceRecognition.entity.Users;
+import com.enclave.FaceRecognition.dto.Request.PythonUserCreationRequest;
+import com.enclave.FaceRecognition.dto.Request.UserCreateRequest;
+import com.enclave.FaceRecognition.dto.Response.PythonResponse;
+import com.enclave.FaceRecognition.entity.User;
+import com.enclave.FaceRecognition.exception.AppException;
+import com.enclave.FaceRecognition.exception.ErrorCode;
+import com.enclave.FaceRecognition.mapper.UserMapper;
 import com.enclave.FaceRecognition.repository.UserRepository;
+import com.enclave.FaceRecognition.repository.httpclient.PythonClient;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import feign.FeignException;
+import jakarta.transaction.Transactional;
+import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.web.server.ResponseStatusException;
+
+import java.time.LocalDateTime;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class UserService {
-    private final UserRepository userRepository;
-    private final RestTemplate restTemplate = new RestTemplate();
-    private final String pythonApiBaseUrl = "http://localhost:5000/api"; // Flask API base URL
+    UserRepository userRepository;
+    UserMapper userMapper;
+    PythonClient pythonClient;
+    ObjectMapper objectMapper;
 
-    public void deleteUserById(Long id) {
+    @Transactional
+    public void createUser(UserCreateRequest request){
+        if(userRepository.existsByEmail(request.getEmail())) {
+            throw new AppException(ErrorCode.EMAIL_EXISTED);
+        }
+        User user = userMapper.toUser(request);
+        String password = "enclave123";
+        PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
+        user.setPassword(passwordEncoder.encode(password));
+        user.setCreatedAt(LocalDateTime.now());
+        User userInfo = userRepository.save(user);
+
+        PythonUserCreationRequest pythonUserCreationRequest = PythonUserCreationRequest.builder()
+                .name(userInfo.getLastName())
+                .employeeId(userInfo.getId())
+                .department(userInfo.getRole())
+                .build();
+        try {
+            var pythonResponse = pythonClient.registerUser(pythonUserCreationRequest, request.getFaceImages());
+            log.info("Python response: {}", pythonResponse);
+        } catch (FeignException.BadRequest e) {
+            log.error("Error setting department: {}", e.getMessage());
+            String responseBody = e.contentUTF8();
+            String errorMessage = handlePythonServiceResponse(e);
+            log.warn("Python service error response: {}", errorMessage);
+            throw new AppException(ErrorCode.PYTHON_SERVICE_ERROR);
+        }
+
+    }
+
+    public String handlePythonServiceResponse(FeignException.BadRequest e) {
+        String errorMessage = "Failed to set department in Python service";
+        try {
+
+            String responseBody = e.contentUTF8();
+
+            // Parse JSON response
+            JsonNode jsonNode = objectMapper.readTree(responseBody);
+
+
+            if (jsonNode.has("message")) {
+                errorMessage = jsonNode.get("message").asText();
+            } else {
+                log.warn("No 'message' field found in Python service response");
+            }
+        } catch (Exception ex) {
+            log.error("Error parsing Python error response: {}", ex.getMessage(), ex);
+        }
+        return errorMessage;
+    }
+
+    @Transactional
+    public void deleteUserById(String id) {
         // 1. Kiểm tra user có tồn tại
         if (!userRepository.existsById(id)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No find user with ID = " + id);
+            throw new AppException(ErrorCode.USER_DO_NOT_EXIST);
         }
-
-        // 2. Gọi Flask API để xóa ảnh
-        String flaskUrl = pythonApiBaseUrl + "/delete-image/" + id;
-        try {
-            restTemplate.delete(flaskUrl);
-        } catch (HttpClientErrorException.NotFound e) {
-            log.warn("Không tìm thấy ảnh bên Flask để xoá: {}", e.getMessage());
-        } catch (HttpClientErrorException e) {
-            log.error("Lỗi từ Flask khi xoá ảnh: {}", e.getMessage());
-        } catch (Exception e) {
-            log.error("Lỗi không xác định khi gọi Flask: {}", e.getMessage());
-        }
-
-        // 3. Xoá user trong DB
+        log.info("user id deleted: {}", id);
+        pythonClient.deleteUser(id);
         userRepository.deleteById(id);
-        log.info("Deleted with ID = {}", id);
+
     }
 
-    public Users updateUser(Long id, UserUpdateDTO dto) {
-        Users existingUser = userRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy user với ID = " + id));
-
-        existingUser.setFirstName(dto.getFirstName());
-        existingUser.setLastName(dto.getLastName());
-        existingUser.setEmail(dto.getEmail());
-        existingUser.setGender(dto.getGender());
-        existingUser.setRole(dto.getRole());
-
-        if (dto.getPassword() != null && !dto.getPassword().isEmpty()) {
-            existingUser.setPassword(dto.getPassword());
-        }
-
-        return userRepository.save(existingUser);
-    }
+//    public Users updateUser(Long id, UserUpdateDTO dto) {
+//        Users existingUser = userRepository.findById(id)
+//                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy user với ID = " + id));
+//
+//        existingUser.setFirstName(dto.getFirstName());
+//        existingUser.setLastName(dto.getLastName());
+//        existingUser.setEmail(dto.getEmail());
+//        existingUser.setGender(dto.getGender());
+//        existingUser.setRole(dto.getRole());
+//
+//        if (dto.getPassword() != null && !dto.getPassword().isEmpty()) {
+//            existingUser.setPassword(dto.getPassword());
+//        }
+//
+//        return userRepository.save(existingUser);
+//    }
 
     }
