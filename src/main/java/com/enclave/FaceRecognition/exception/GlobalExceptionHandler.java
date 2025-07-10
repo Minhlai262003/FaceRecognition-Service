@@ -1,6 +1,7 @@
 package com.enclave.FaceRecognition.exception;
 
 import com.enclave.FaceRecognition.dto.Response.ApiResponse;
+import feign.FeignException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -32,6 +33,13 @@ public class GlobalExceptionHandler {
         apiResponse.setCode(errorCode.getCode());
         apiResponse.setMessage(errorCode.getMessage());
 
+        return ResponseEntity.badRequest().body(apiResponse);
+    }
+    @ExceptionHandler(value = FeignException.class)
+    ResponseEntity<ApiResponse> handlingFeignException(FeignException exception) {
+        ApiResponse apiResponse = new ApiResponse();
+        apiResponse.setCode(1001);
+        apiResponse.setMessage(exception.getMessage());
         return ResponseEntity.badRequest().body(apiResponse);
     }
 

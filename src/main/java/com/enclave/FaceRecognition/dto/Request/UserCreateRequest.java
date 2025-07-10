@@ -1,7 +1,9 @@
 package com.enclave.FaceRecognition.dto.Request;
 
 
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.springframework.web.multipart.MultipartFile;
@@ -23,9 +25,16 @@ public class UserCreateRequest {
     @NotNull(message = "LAST_NAME_NULL")
     String lastName;
 
+    @Pattern(
+            regexp = "^(0[3|5|7|8|9])[0-9]{8}$",
+            message = "PHONE_INVALID"
+    )
+    String phoneNumber;
+
+    String birthDay;
+
     String gender;
-    @NotNull(message = "PASSWORD_NULL")
-    String password;
+
     String role;
 
 
