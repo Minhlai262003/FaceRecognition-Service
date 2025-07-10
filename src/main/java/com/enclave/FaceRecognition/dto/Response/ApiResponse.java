@@ -1,18 +1,18 @@
 package com.enclave.FaceRecognition.dto.Response;
 
-
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
-import java.time.LocalDateTime;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.*;
+import lombok.experimental.FieldDefaults;
 
 @Data
-@AllArgsConstructor
+@Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
 @NoArgsConstructor
-public class ApiResponse<T> {
-    private int status;
-    private String message;
-    private T data;
-    private LocalDateTime timestamp;
+@AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
+
+public class ApiResponse <T>{
+    int code = 1000;
+    String message;
+    T result;
 }
