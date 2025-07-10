@@ -16,3 +16,4 @@ spring:
 app:
   service:
     python: http://localhost:5000/api
+

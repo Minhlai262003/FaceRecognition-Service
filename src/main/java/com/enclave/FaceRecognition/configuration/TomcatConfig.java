@@ -11,7 +11,7 @@ public class TomcatConfig {
     @Bean
     public WebServerFactoryCustomizer<TomcatServletWebServerFactory> tomcatCustomizer() {
         return factory -> factory.addConnectorCustomizers((TomcatConnectorCustomizer) connector -> {
-            connector.setMaxPartCount(10);
+            connector.setMaxPartCount(50);
         });
     }
 }

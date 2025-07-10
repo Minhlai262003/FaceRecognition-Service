@@ -7,6 +7,9 @@ public enum ErrorCode {
     FIRST_NAME_NULL(1003, "First name cannot be null"),
     LAST_NAME_NULL(1004, "Last name cannot be null"),
     PASSWORD_NULL(1005, "Password cannot be null"),
+    PYTHON_SERVICE_ERROR(1006, "Python service error"),
+    PHONE_INVALID(1007, "Phone number is invalid"),
+    FACE_RECOGNITION_ERROR(1008, "Face recognition error"),
     ;
 
     ErrorCode(int code, String message) {

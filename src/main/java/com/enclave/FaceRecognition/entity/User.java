@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -23,6 +24,8 @@ public class User {
     String email;
     String firstName;
     String lastName;
+    String phoneNumber;
+    LocalDate birthDay;
     String gender;
     String password;
     String role;
