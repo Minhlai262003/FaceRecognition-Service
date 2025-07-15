@@ -10,6 +10,10 @@ public enum ErrorCode {
     PYTHON_SERVICE_ERROR(1006, "Python service error"),
     PHONE_INVALID(1007, "Phone number is invalid"),
     FACE_RECOGNITION_ERROR(1008, "Face recognition error"),
+    INVALID_PASSWORD(1011, "Invalid password"),
+
+    USER_NOT_EXISTED(1009, "User does not exist"),
+    INVALID_TOKEN(1010, "Invalid token"),
     ;
 
     ErrorCode(int code, String message) {

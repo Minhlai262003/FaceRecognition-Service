@@ -73,8 +73,8 @@ public class UserService {
             JsonNode jsonNode = objectMapper.readTree(responseBody);
 
 
-            if (jsonNode.has("message")) {
-                errorMessage = jsonNode.get("message").asText();
+            if (jsonNode.has("status")) {
+                errorMessage = jsonNode.get("status").asText();
             } else {
                 log.warn("No 'message' field found in Python service response");
             }

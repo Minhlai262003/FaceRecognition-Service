@@ -17,3 +17,8 @@ app:
   service:
     python: http://localhost:5000/api
 
+
+jwt:
+  signerKey: ${JWT_SIGNER_KEY}
+  access-duration: 3600
+  refresh-duration: 86400
