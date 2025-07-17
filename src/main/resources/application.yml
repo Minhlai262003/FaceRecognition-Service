@@ -1,15 +1,19 @@
 server:
   port: 8080
   servlet:
-    context-path: /face-detection
-
-face-detection:
-  python-api-url: http://localhost:5000
+    context-path: /enclave
 
 spring:
   datasource:
-    url: jdbc:mysql://localhost:3306/enclave_db
+    url: jdbc:mysql://localhost:3306/Enclave_db
     username: root
     password:
-    driver-class-name: com.mysql.cj.jdbc.Driver
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+
+app:
+  service:
+    python: http://localhost:5000/api
 
