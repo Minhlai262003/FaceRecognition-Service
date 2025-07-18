@@ -2,6 +2,8 @@ package com.enclave.FaceRecognition.controller;
 
 import com.enclave.FaceRecognition.dto.Request.UserCreateRequest;
 import com.enclave.FaceRecognition.dto.Response.ApiResponse;
+import com.enclave.FaceRecognition.dto.Response.UserResponse;
+import com.enclave.FaceRecognition.entity.User;
 import com.enclave.FaceRecognition.service.UserService;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
@@ -10,6 +12,8 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @Slf4j
 @RestController
@@ -37,6 +41,17 @@ public class UserController {
                 .result("Deleted success")
                 .build();
     }
+
+    @GetMapping
+    public ApiResponse<List<UserResponse>> getAllUsers(){
+        List<UserResponse> users = userService.getAllUsers();
+        return ApiResponse.<List<UserResponse>>builder()
+                .code(1000)
+                .result(users)
+                .build();
+    }
+
+
 //    @PutMapping("/{id}")
 //    public ResponseEntity<ApiResponse<Users>> updateUser(
 //            @PathVariable Long id,

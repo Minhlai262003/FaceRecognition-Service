@@ -2,12 +2,14 @@ package com.enclave.FaceRecognition.dto.Request;
 
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDate;
 import java.util.List;
 
 
@@ -31,12 +33,13 @@ public class UserCreateRequest {
     )
     String phoneNumber;
 
-    String birthDay;
+    LocalDate birthDay;
 
     String gender;
-
+    @NotNull(message = "ROLE_NULL")
     String role;
 
-
+    @NotNull(message = "IMAGE_NULL")
+    @NotEmpty(message = "IMAGE_NULL")
     List<MultipartFile> faceImages;
 }
