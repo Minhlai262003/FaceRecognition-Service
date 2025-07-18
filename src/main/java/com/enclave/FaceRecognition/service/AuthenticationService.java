@@ -2,10 +2,16 @@ package com.enclave.FaceRecognition.service;
 
 
 import com.enclave.FaceRecognition.dto.Request.AuthenticationRequest;
+import com.enclave.FaceRecognition.dto.Request.IntrospectRequest;
+import com.enclave.FaceRecognition.dto.Request.LogoutRequest;
+import com.enclave.FaceRecognition.dto.Request.RefreshRequest;
 import com.enclave.FaceRecognition.dto.Response.AuthenticationResponse;
+import com.enclave.FaceRecognition.dto.Response.IntrospectResponse;
+import com.enclave.FaceRecognition.entity.InvalidatedToken;
 import com.enclave.FaceRecognition.entity.User;
 import com.enclave.FaceRecognition.exception.AppException;
 import com.enclave.FaceRecognition.exception.ErrorCode;
+import com.enclave.FaceRecognition.repository.InvalidatedTokenRepository;
 import com.enclave.FaceRecognition.repository.UserRepository;
 import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.MACSigner;
@@ -41,8 +47,23 @@ public class AuthenticationService {
     long REFRESH_DURATION;
 
     final UserRepository userRepository;
+    final InvalidatedTokenRepository invalidatedTokenRepository;
 
 
+
+    public IntrospectResponse introspect(IntrospectRequest request) throws JOSEException, ParseException {
+        var token = request.getToken();
+        boolean isValid = true;
+
+        try {
+            verifyToken(token, false);
+        } catch (AppException e) {
+            isValid = false;
+        }
+        return IntrospectResponse.builder()
+                .valid(isValid)
+                .build();
+    }
 
     private SignedJWT verifyToken(String token, boolean isRefresh) throws JOSEException, ParseException {
 
@@ -56,8 +77,28 @@ public class AuthenticationService {
         if (!verified || expirationTime.before(new Date())) {
             throw new AppException(ErrorCode.INVALID_TOKEN);
         }
-
+        if (invalidatedTokenRepository.existsById(signedJWT.getJWTClaimsSet().getJWTID())){
+            log.info("Token is invalidated");
+            throw new AppException(ErrorCode.UNAUTHENTICATED);
+        }
         return signedJWT;
+    }
+
+    public AuthenticationResponse refreshToken(RefreshRequest request) throws ParseException, JOSEException {
+        var jwtToken = verifyToken(request.getToken(), true);
+        String jit = jwtToken.getJWTClaimsSet().getJWTID();
+        Date expiryTime = jwtToken.getJWTClaimsSet().getExpirationTime();
+        InvalidatedToken invalidatedToken = InvalidatedToken.builder()
+                .id(jit)
+                .expiryTime(expiryTime)
+                .build();
+        invalidatedTokenRepository.save(invalidatedToken);
+        var username= jwtToken.getJWTClaimsSet().getSubject();
+        userRepository.findByEmail(username).orElseThrow(()->new AppException(ErrorCode.UNAUTHENTICATED));
+        var token = generateToken(username);
+        return AuthenticationResponse.builder()
+                .accessToken(token)
+                .build();
     }
 
     public AuthenticationResponse authenticate(AuthenticationRequest request) {
@@ -76,8 +117,26 @@ public class AuthenticationService {
                 .build();
     }
 
+
+    public void logout(LogoutRequest request) throws ParseException, JOSEException {
+        try {
+            var signToken = verifyToken(request.getAccessToken(), false);
+            String jit = signToken.getJWTClaimsSet().getJWTID();
+            Date expiryTime = signToken.getJWTClaimsSet().getExpirationTime();
+            InvalidatedToken invalidatedToken = InvalidatedToken.builder()
+                    .id(jit)
+                    .expiryTime(expiryTime)
+                    .build();
+            invalidatedTokenRepository.save(invalidatedToken);
+            log.info("Logout success");
+        } catch (AppException exception) {
+            log.info("Token already expired");
+        }
+    }
+
+
     private String generateToken(String username) {
-        JWSHeader header = new JWSHeader(JWSAlgorithm.ES512);
+        JWSHeader header = new JWSHeader(JWSAlgorithm.HS512);
 
         JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder()
                 .subject(username)

@@ -2,7 +2,7 @@ package com.enclave.FaceRecognition.service;
 
 import com.enclave.FaceRecognition.dto.Request.PythonUserCreationRequest;
 import com.enclave.FaceRecognition.dto.Request.UserCreateRequest;
-import com.enclave.FaceRecognition.dto.Response.PythonResponse;
+import com.enclave.FaceRecognition.dto.Response.UserResponse;
 import com.enclave.FaceRecognition.entity.User;
 import com.enclave.FaceRecognition.exception.AppException;
 import com.enclave.FaceRecognition.exception.ErrorCode;
@@ -21,7 +21,10 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.Period;
+import java.util.List;
 
 @Slf4j
 @Service
@@ -38,7 +41,25 @@ public class UserService {
         if(userRepository.existsByEmail(request.getEmail())) {
             throw new AppException(ErrorCode.EMAIL_EXISTED);
         }
+
+        if (userRepository.existsByPhoneNumber(request.getPhoneNumber()))
+            throw new AppException(ErrorCode.PHONE_EXISTED);
+
+        if (request.getBirthDay() != null) {
+            LocalDate birthDate = request.getBirthDay();
+            LocalDate now = LocalDate.now();
+            int age = Period.between(birthDate, now).getYears();
+
+            if (age < 18) {
+                throw new AppException(ErrorCode.AGE_UNDER_18);
+            }
+        } else {
+            throw new AppException(ErrorCode.DATE_OF_BIRTH_REQUIRED);
+        }
+
         User user = userMapper.toUser(request);
+
+
         String password = "enclave123";
         PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
         user.setPassword(passwordEncoder.encode(password));
@@ -50,6 +71,8 @@ public class UserService {
                 .employeeId(userInfo.getId())
                 .department(userInfo.getRole())
                 .build();
+
+
         try {
             var pythonResponse = pythonClient.registerUser(pythonUserCreationRequest, request.getFaceImages());
             log.info("Python response: {}", pythonResponse);
@@ -83,4 +106,42 @@ public class UserService {
         }
         return errorMessage;
     }
-}
+
+    @Transactional
+    public void deleteUserById(String id) {
+
+        if (!userRepository.existsById(id)) {
+            throw new AppException(ErrorCode.USER_NOT_EXISTED);
+        }
+        log.info("user id deleted: {}", id);
+        pythonClient.deleteUser(id);
+        userRepository.deleteById(id);
+
+    }
+
+    public List<UserResponse> getAllUsers() {
+        List<User> users = userRepository.findAll();
+
+        return users.stream()
+                .map(userMapper::toUserResponse)
+                .toList();
+    }
+
+//    public Users updateUser(Long id, UserUpdateDTO dto) {
+//        Users existingUser = userRepository.findById(id)
+//                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy user với ID = " + id));
+//
+//        existingUser.setFirstName(dto.getFirstName());
+//        existingUser.setLastName(dto.getLastName());
+//        existingUser.setEmail(dto.getEmail());
+//        existingUser.setGender(dto.getGender());
+//        existingUser.setRole(dto.getRole());
+//
+//        if (dto.getPassword() != null && !dto.getPassword().isEmpty()) {
+//            existingUser.setPassword(dto.getPassword());
+//        }
+//
+//        return userRepository.save(existingUser);
+//    }
+
+    }

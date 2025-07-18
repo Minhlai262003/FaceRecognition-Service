@@ -14,6 +14,13 @@ public enum ErrorCode {
 
     USER_NOT_EXISTED(1009, "User does not exist"),
     INVALID_TOKEN(1010, "Invalid token"),
+    UNAUTHENTICATED(1012, "Unauthenticated request"),
+    IMAGE_NULL(1013, "Image cannot be null"),
+    ROLE_NULL(1014, "Role cannot be null"),
+    PHONE_EXISTED(1015, "Phone number already exists"),
+    AGE_UNDER_18(1016, "User must be at least 18 years old"),
+    DATE_OF_BIRTH_REQUIRED(1017, "Date of birth is required")
+
     ;
 
     ErrorCode(int code, String message) {

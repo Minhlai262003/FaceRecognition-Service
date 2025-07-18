@@ -1,3 +1,26 @@
+# Spring Boot gitignore 
+# Maven
+/target/
+*.jar
+*.class
+
+# IDE settings
+.idea/
+*.iml
+.vscode/
+
+# OS generated
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Sensitive files
+*.env
+application-local.yml
+application-dev.yml
+=======
 HELP.md
 target/
 .mvn/wrapper/maven-wrapper.jar
