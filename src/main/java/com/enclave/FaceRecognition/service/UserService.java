@@ -69,7 +69,7 @@ public class UserService {
         PythonUserCreationRequest pythonUserCreationRequest = PythonUserCreationRequest.builder()
                 .name(userInfo.getLastName())
                 .employeeId(userInfo.getId())
-                .department(userInfo.getRole())
+                .department(userInfo.getRole().name())
                 .build();
 
 
