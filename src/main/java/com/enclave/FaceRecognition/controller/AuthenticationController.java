@@ -9,6 +9,7 @@ import com.enclave.FaceRecognition.dto.Response.AuthenticationResponse;
 import com.enclave.FaceRecognition.dto.Response.IntrospectResponse;
 import com.enclave.FaceRecognition.service.AuthenticationService;
 import com.nimbusds.jose.JOSEException;
+import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -28,40 +29,49 @@ public class AuthenticationController {
     AuthenticationService authenticationService;
 
     @PostMapping("/login")
-    ApiResponse<AuthenticationResponse> authenticate(@RequestBody AuthenticationRequest request) {
+    ApiResponse<AuthenticationResponse> authenticate(@Valid @RequestBody AuthenticationRequest request) {
         var result = authenticationService.authenticate(request);
         return ApiResponse.<AuthenticationResponse>builder()
-                .code(1000)
-                .result(result)
+                .status(200)
+                .message("Login successful")
+                .success(true)
+                .data(result)
                 .build();
     }
 
     @PostMapping("/introspect")
-    ApiResponse<IntrospectResponse> authenticate(@RequestBody IntrospectRequest request)
+    public ApiResponse<IntrospectResponse> introspect(@RequestBody IntrospectRequest request)
             throws ParseException, JOSEException {
         var result = authenticationService.introspect(request);
         return ApiResponse.<IntrospectResponse>builder()
-                .code(1000)
-                .result(result)
+                .status(200)
+                .message("Token introspection successful")
+                .success(true)
+                .data(result)
                 .build();
     }
 
     @PostMapping("/refresh")
-    ApiResponse<AuthenticationResponse> authenticate(@RequestBody RefreshRequest request)
+    public ApiResponse<AuthenticationResponse> refresh(@RequestBody RefreshRequest request)
             throws ParseException, JOSEException {
         var result = authenticationService.refreshToken(request);
         return ApiResponse.<AuthenticationResponse>builder()
-                .code(1000)
-                .result(result)
+                .status(200)
+                .message("Token refreshed successfully")
+                .success(true)
+                .data(result)
                 .build();
     }
 
     @PostMapping("/logout")
-    ApiResponse<Void> authenticate(@RequestBody LogoutRequest request)
+    public ApiResponse<Void> logout(@RequestBody LogoutRequest request)
             throws ParseException, JOSEException {
         authenticationService.logout(request);
         return ApiResponse.<Void>builder()
-                .code(1000)
+                .status(200)
+                .message("Logout successful")
+                .success(true)
+                .data(null)
                 .build();
     }
 }

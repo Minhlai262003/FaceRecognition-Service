@@ -10,10 +10,8 @@ server:
     key-alias: myalias
 
 spring:
-  datasource:
-    url: ${DBMS_CONNECTION:jdbc:mysql://localhost:3306/EnclaveWelcome}
-    username: ${DBMS_USERNAME:root}
-    password: ${DBMS_PASSWORD:root}
+  profiles:
+    active: ${SPRING_PROFILE:dev}
   servlet:
     multipart:
       max-file-size: 100MB
@@ -25,9 +23,9 @@ app:
 
 
 jwt:
-  signerKey: ${JWT_SIGNER_KEY}
-  access-duration: 3600
-  refresh-duration: 86400
+  signerKey: "MySuperSecretKeyThatIsLongEnough123!"
+  access-duration: 3600000
+  refresh-duration: 604800000
 
 security:
   cors:

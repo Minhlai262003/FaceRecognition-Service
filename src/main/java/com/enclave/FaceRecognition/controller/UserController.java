@@ -23,33 +23,33 @@ import java.util.List;
 public class UserController {
     UserService userService;
 
-    @PostMapping(consumes = "multipart/form-data")
-    public ApiResponse<String> createUser(@ModelAttribute @Valid UserCreateRequest request) {
-        userService.createUser(request);
-        return ApiResponse.<String>builder()
-                .code(1000)
-                .result("User created successfully")
-                .build();
-    }
-
-
-    @DeleteMapping("/{id}")
-    public ApiResponse<String> deleteUser(@PathVariable String id) {
-        userService.deleteUserById(id);
-        return ApiResponse.<String>builder()
-                .code(1000)
-                .result("Deleted success")
-                .build();
-    }
-
-    @GetMapping
-    public ApiResponse<List<UserResponse>> getAllUsers(){
-        List<UserResponse> users = userService.getAllUsers();
-        return ApiResponse.<List<UserResponse>>builder()
-                .code(1000)
-                .result(users)
-                .build();
-    }
+//    @PostMapping(consumes = "multipart/form-data")
+//    public ApiResponse<String> createUser(@ModelAttribute @Valid UserCreateRequest request) {
+//        userService.createUser(request);
+//        return ApiResponse.<String>builder()
+//                .code(1000)
+//                .result("User created successfully")
+//                .build();
+//    }
+//
+//
+//    @DeleteMapping("/{id}")
+//    public ApiResponse<String> deleteUser(@PathVariable String id) {
+//        userService.deleteUserById(id);
+//        return ApiResponse.<String>builder()
+//                .code(1000)
+//                .result("Deleted success")
+//                .build();
+//    }
+//
+//    @GetMapping
+//    public ApiResponse<List<UserResponse>> getAllUsers(){
+//        List<UserResponse> users = userService.getAllUsers();
+//        return ApiResponse.<List<UserResponse>>builder()
+//                .code(1000)
+//                .result(users)
+//                .build();
+//    }
 
 
 //    @PutMapping("/{id}")
