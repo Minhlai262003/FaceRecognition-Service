@@ -63,33 +63,40 @@ public class UserService {
             throw new AppException(ErrorCode.DATE_OF_BIRTH_REQUIRED);
         }
 
-        User user = userMapper.toUser(request);
-
-
-        String password = "enclave123";
-        PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
-        user.setPassword(passwordEncoder.encode(password));
-        user.setCreatedAt(LocalDateTime.now());
-        User userInfo = userRepository.save(user);
-
-        PythonUserCreationRequest pythonUserCreationRequest = PythonUserCreationRequest.builder()
-                .name(userInfo.getLastName())
-                .employeeId(userInfo.getId())
-                .department(userInfo.getRole().name())
-                .build();
-
-
         try {
-            var pythonResponse = pythonClient.registerUser(pythonUserCreationRequest, request.getFaceImages());
-            log.info("Python response: {}", pythonResponse);
-        } catch (FeignException.BadRequest e) {
-            log.error("Error setting department: {}", e.getMessage());
-            String responseBody = e.contentUTF8();
-            String errorMessage = handlePythonServiceResponse(e);
-            log.warn("Python service error response: {}", errorMessage);
-            throw new AppException(ErrorCode.PYTHON_SERVICE_ERROR);
-        }
+            User user = userMapper.toUser(request);
+            String password = "enclave123";
+            PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
+            user.setPassword(passwordEncoder.encode(password));
+            user.setCreatedAt(LocalDateTime.now());
+            User userInfo = userRepository.save(user);
 
+            PythonUserCreationRequest pythonUserCreationRequest = PythonUserCreationRequest.builder()
+                    .name(userInfo.getLastName())
+                    .employeeId(userInfo.getId())
+                    .department(userInfo.getRole().name())
+                    .build();
+
+
+            try {
+                var pythonResponse = pythonClient.registerUser(
+                        pythonUserCreationRequest.getEmployeeId(),
+                        pythonUserCreationRequest.getName(),
+                        pythonUserCreationRequest.getDepartment(),
+                        request.getFaceImages()
+                );
+                log.info("Python response: {}", pythonResponse);
+            } catch (FeignException.BadRequest e) {
+                log.error("Error setting department: {}", e.getMessage());
+                String responseBody = e.contentUTF8();
+                String errorMessage = handlePythonServiceResponse(e);
+                log.warn("Python service error response: {}", errorMessage);
+                throw new AppException(ErrorCode.PYTHON_SERVICE_ERROR);
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            throw new RuntimeException("Error mapping UserCreateRequest to User", ex);
+        }
     }
 
     public String handlePythonServiceResponse(FeignException.BadRequest e) {
