@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import java.text.ParseException;
 import java.util.Date;
+import java.util.UUID;
 
 @Service
 public class JwtService {
@@ -25,14 +26,19 @@ public class JwtService {
     }
 
 
-    public String generateToken(User user, long expirationMillis) throws JOSEException {
+    public String generateToken(User user, long expirationMillis, String type) throws JOSEException {
         JWSSigner signer = new MACSigner(jwk.toOctetSequenceKey().toSecretKey());
+
+        Date now = new Date();
+        Date expiry = new Date(now.getTime() + expirationMillis);
 
         JWTClaimsSet claims = new JWTClaimsSet.Builder()
                 .subject(user.getEmail())
-                .claim("roles", user.getRole())
-                .issueTime(new Date())
-                .expirationTime(new Date(System.currentTimeMillis() + expirationMillis))
+                .claim("role", user.getRole())
+                .claim("typ", type)
+                .jwtID(UUID.randomUUID().toString())
+                .issueTime(now)
+                .expirationTime(expiry)
                 .build();
 
         SignedJWT signedJWT = new SignedJWT(

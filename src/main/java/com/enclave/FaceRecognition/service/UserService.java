@@ -2,7 +2,10 @@ package com.enclave.FaceRecognition.service;
 
 import com.enclave.FaceRecognition.dto.Request.PythonUserCreationRequest;
 import com.enclave.FaceRecognition.dto.Request.UserCreateRequest;
+import com.enclave.FaceRecognition.dto.Request.UserUpdateRequest;
 import com.enclave.FaceRecognition.dto.Response.UserResponse;
+import com.enclave.FaceRecognition.entity.Gender;
+import com.enclave.FaceRecognition.entity.Role;
 import com.enclave.FaceRecognition.entity.User;
 import com.enclave.FaceRecognition.exception.AppException;
 import com.enclave.FaceRecognition.exception.ErrorCode;
@@ -17,6 +20,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -25,6 +29,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Period;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -109,7 +115,7 @@ public class UserService {
 
     @Transactional
     public void deleteUserById(String id) {
-
+        UUID uuid = UUID.fromString(id);
         if (!userRepository.existsById(id)) {
             throw new AppException(ErrorCode.USER_NOT_EXISTED);
         }
@@ -127,21 +133,53 @@ public class UserService {
                 .toList();
     }
 
-//    public Users updateUser(Long id, UserUpdateDTO dto) {
-//        Users existingUser = userRepository.findById(id)
-//                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy user với ID = " + id));
-//
-//        existingUser.setFirstName(dto.getFirstName());
-//        existingUser.setLastName(dto.getLastName());
-//        existingUser.setEmail(dto.getEmail());
-//        existingUser.setGender(dto.getGender());
-//        existingUser.setRole(dto.getRole());
-//
-//        if (dto.getPassword() != null && !dto.getPassword().isEmpty()) {
-//            existingUser.setPassword(dto.getPassword());
-//        }
-//
-//        return userRepository.save(existingUser);
-//    }
-
+    public UserResponse getUserById(String id) {
+        UUID uuid = UUID.fromString(id);
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        return userMapper.toUserResponse(user);
     }
+
+    public void updateUser(String id, UserUpdateRequest userUpdateRequest) {
+        User existingUser = userRepository.findById(id)
+                .orElseThrow(() -> new BadCredentialsException("User not found"));
+
+        Optional.ofNullable(userUpdateRequest.getFirstName())
+                .ifPresent(existingUser::setFirstName);
+
+        Optional.ofNullable(userUpdateRequest.getLastName())
+                .ifPresent(existingUser::setLastName);
+
+        Optional.ofNullable(userUpdateRequest.getEmail())
+                .ifPresent(existingUser::setEmail);
+
+        Optional.ofNullable(userUpdateRequest.getPhoneNumber())
+                .ifPresent(existingUser::setPhoneNumber);
+
+        Optional.ofNullable(userUpdateRequest.getBirthDay())
+                .ifPresent(existingUser::setBirthDay);
+
+        Optional.ofNullable(userUpdateRequest.getGender())
+                .ifPresent(g -> {
+                    try {
+                        existingUser.setGender(Gender.valueOf(g.toUpperCase()));
+                    } catch (IllegalArgumentException e) {
+                        throw new BadCredentialsException("Invalid gender value");
+                    }
+                });
+
+        Optional.ofNullable(userUpdateRequest.getRole())
+                .ifPresent(r -> {
+                    try {
+                        existingUser.setRole(Role.valueOf(r.toUpperCase()));
+                    } catch (IllegalArgumentException e) {
+                        throw new BadCredentialsException("Invalid role value");
+                    }
+                });
+
+
+         userRepository.save(existingUser);
+    }
+
+
+}

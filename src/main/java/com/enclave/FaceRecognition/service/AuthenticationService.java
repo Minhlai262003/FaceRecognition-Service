@@ -27,6 +27,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -48,6 +49,7 @@ public class AuthenticationService {
     private final UserRepository userRepository;
     private final JwtService jwtService;
     private final InvalidatedTokenRepository tokenRepository;
+    private final PasswordEncoder passwordEncoder;
     @Value("${jwt.access-duration}")
     private long ACCESS_TOKEN_EXP;
     @Value("${jwt.refresh-duration}")
@@ -57,14 +59,13 @@ public class AuthenticationService {
 
         User user = userRepository.findByEmail(request.getUsername())
                 .orElseThrow(() -> new BadCredentialsException("User not found"));
-        PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
         boolean authenticated = passwordEncoder.matches(request.getPassword(), user.getPassword());
         if (!authenticated){
             throw new BadCredentialsException("Invalid username or password");
         }
         try {
-            String accessToken = jwtService.generateToken(user, ACCESS_TOKEN_EXP);
-            String refreshToken = jwtService.generateToken(user, REFRESH_TOKEN_EXP);
+            String accessToken = jwtService.generateToken(user, ACCESS_TOKEN_EXP, "access");
+            String refreshToken = jwtService.generateToken(user, REFRESH_TOKEN_EXP, "refresh");
             return new AuthenticationResponse(accessToken, refreshToken);
         } catch (JOSEException e) {
             throw new RuntimeException("Failed to generate JWT token", e);
@@ -88,21 +89,39 @@ public class AuthenticationService {
         User user = userRepository.findByEmail(claims.getSubject())
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
-        String newAccessToken = jwtService.generateToken(user, ACCESS_TOKEN_EXP);
-        String newRefreshToken = jwtService.generateToken(user, REFRESH_TOKEN_EXP);
+        String newAccessToken = jwtService.generateToken(user, ACCESS_TOKEN_EXP, "access");
 
-        return new AuthenticationResponse(newAccessToken, newRefreshToken);
+        return new AuthenticationResponse(newAccessToken, null);
     }
     public void logout(LogoutRequest request) throws ParseException, JOSEException {
-        JWTClaimsSet claims = jwtService.verifyToken(request.getRefreshToken());
+        String refreshToken = request.getRefreshToken();
 
-        InvalidatedToken token = InvalidatedToken.builder()
-                .id(request.getRefreshToken())
-                .expiryTime(claims.getExpirationTime())
-                .build();
+        try {
+            JWTClaimsSet claims = jwtService.verifyToken(refreshToken);
+            System.out.println(claims.getExpirationTime());
 
-        tokenRepository.save(token);
+            String type = (String) claims.getClaim("typ");
+            if (!"refresh".equals(type)) {
+                throw new BadCredentialsException("Invalid token type: must be refresh token");
+            }
+
+            if (tokenRepository.existsById(refreshToken)) {
+                return;
+            }
+
+            InvalidatedToken token = InvalidatedToken.builder()
+                    .id(refreshToken)
+                    .expiryTime(claims.getExpirationTime())
+                    .build();
+
+            tokenRepository.save(token);
+        } catch (Exception e) {
+            e.printStackTrace(); // 👈 IN RA LỖI CHI TIẾT
+            throw e;
+        }
     }
+
+
 
 //    public IntrospectResponse introspect(IntrospectRequest request) throws JOSEException, ParseException {
 //        var token = request.getToken();
