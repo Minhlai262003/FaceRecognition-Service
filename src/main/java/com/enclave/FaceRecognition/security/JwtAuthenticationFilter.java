@@ -1,5 +1,7 @@
 package com.enclave.FaceRecognition.security;
+
 import com.enclave.FaceRecognition.service.JwtService;
+import com.nimbusds.jwt.JWTClaimsSet;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,103 +24,50 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final CustomUserDetailsService userDetailsService;
 
-//    @Override
-//    protected void doFilterInternal(
-//            HttpServletRequest request,
-//            HttpServletResponse response,
-//            FilterChain filterChain
-//    ) throws ServletException, IOException {
-//        String jwt = parseJwt(request);
-//        if (jwt != null && jwtUtils.validateJwtToken(jwt)) {
-//            String username = jwtUtils.getUsernameFromToken(jwt);
-//            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-//            System.out.println("hehe" + userDetails.toString());
-//
-//            UsernamePasswordAuthenticationToken authentication =
-//                    new UsernamePasswordAuthenticationToken(
-//                            userDetails,
-//                            null,
-//                            userDetails.getAuthorities()
-//                    );
-//
-//            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-//            SecurityContextHolder.getContext().setAuthentication(authentication);
-//        }
-//
-//        filterChain.doFilter(request, response);
-//    }
-//@Override
-//protected void doFilterInternal(
-//        HttpServletRequest request,
-//        HttpServletResponse response,
-//        FilterChain filterChain
-//) throws ServletException, IOException {
-//    String jwt = parseJwt(request);
-//
-//    if (jwt != null) {
-//        try {
-//            if (jwtUtils.validateJwtToken(jwt)) {
-//                String username = jwtUtils.getUsernameFromToken(jwt);
-//                System.out.println(username);
-//                if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-//                    UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-//
-//                    UsernamePasswordAuthenticationToken authentication =
-//                            new UsernamePasswordAuthenticationToken(
-//                                    userDetails,
-//                                    null,
-//                                    userDetails.getAuthorities()
-//                            );
-//
-//                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-//                    SecurityContextHolder.getContext().setAuthentication(authentication);
-//                }
-//            } else {
-//                throw new BadCredentialsException( "Invalid or expired JWT token");
-//            }
-//        } catch (Exception e) {
-//            throw new AuthenticationException();
-//        }
-//    }
-//
-//    filterChain.doFilter(request, response);
-//}
-@Override
-protected void doFilterInternal(
-        HttpServletRequest request,
-        HttpServletResponse response,
-        FilterChain filterChain
-) throws ServletException, IOException {
-    String jwt = parseJwt(request);
+    @Override
+    protected void doFilterInternal(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain
+    ) throws ServletException, IOException {
 
-    if (jwt != null) {
-            if (jwtService.validateJwtToken(jwt)) {
-                String username = jwtService.getUsernameFromToken(jwt);
-                System.out.println("hehehe" + username);
-                if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                    UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+        String jwt = parseJwt(request);
 
-                    UsernamePasswordAuthenticationToken authentication =
-                            new UsernamePasswordAuthenticationToken(
-                                    userDetails,
-                                    null,
-                                    userDetails.getAuthorities()
-                            );
-
-                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                    SecurityContextHolder.getContext().setAuthentication(authentication);
-                }
-            } else {
-                System.out.println("Invalid or");
-                throw new BadCredentialsException( "Invalid or expired JWT token");
-
+        if (jwt != null) {
+            if (!jwtService.validateJwtToken(jwt)) {
+                throw new BadCredentialsException("Invalid or expired JWT token");
             }
 
+            JWTClaimsSet claims;
+            try {
+                claims = jwtService.verifyToken(jwt);
+            } catch (Exception e) {
+                throw new BadCredentialsException("Invalid JWT token");
+            }
+
+            String type = (String) claims.getClaim("typ");
+            if (!"access".equals(type)) {
+                throw new BadCredentialsException("Invalid token type. Only access tokens are allowed.");
+            }
+
+            String username = claims.getSubject();
+            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+
+                UsernamePasswordAuthenticationToken authentication =
+                        new UsernamePasswordAuthenticationToken(
+                                userDetails,
+                                null,
+                                userDetails.getAuthorities()
+                        );
+
+                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+            }
+        }
+
+        filterChain.doFilter(request, response);
     }
-
-    filterChain.doFilter(request, response);
-}
-
 
     private String parseJwt(HttpServletRequest request) {
         String headerAuth = request.getHeader("Authorization");

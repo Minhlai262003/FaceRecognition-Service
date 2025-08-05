@@ -12,7 +12,7 @@ server:
 
 spring:
   profiles:
-    active: ${SPRING_PROFILE:prod}
+    active: ${SPRING_PROFILE:dev}
   servlet:
     multipart:
       max-file-size: 100MB
@@ -31,3 +31,7 @@ jwt:
 security:
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:https://localhost:5173}
+
+springdoc:
+  swagger-ui:
+    defaultModelsExpandDepth: -1

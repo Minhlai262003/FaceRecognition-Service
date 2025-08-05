@@ -5,6 +5,7 @@ import com.enclave.FaceRecognition.dto.Response.TopicResponse;
 import com.enclave.FaceRecognition.entity.Topic;
 import com.enclave.FaceRecognition.mapper.TopicMapper;
 import com.enclave.FaceRecognition.service.TopicService;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,7 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
-
+@SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping("/topics")
 @RequiredArgsConstructor
