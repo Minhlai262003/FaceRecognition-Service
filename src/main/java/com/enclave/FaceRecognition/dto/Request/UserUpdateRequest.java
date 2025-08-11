@@ -1,24 +1,17 @@
 package com.enclave.FaceRecognition.dto.Request;
 
-
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
-import java.util.List;
-
-
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class UserCreateRequest {
+public class UserUpdateRequest {
     @NotNull(message = "EMAIL_NULL")
     String email;
     @NotNull(message = "FIRST_NAME_NULL")
@@ -38,8 +31,4 @@ public class UserCreateRequest {
     String gender;
     @NotNull(message = "ROLE_NULL")
     String role;
-
-    @NotNull(message = "IMAGE_NULL")
-    @NotEmpty(message = "IMAGE_NULL")
-    List<MultipartFile> faceImages;
 }

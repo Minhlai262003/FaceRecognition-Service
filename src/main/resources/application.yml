@@ -1,13 +1,18 @@
 server:
   port: 8080
+  address: 0.0.0.0
   servlet:
     context-path: /enclave
+  ssl:
+    enabled: true
+    key-store: classpath:keystore.p12
+    key-store-password: enclave
+    key-store-type: PKCS12
+    key-alias: myalias
 
 spring:
-  datasource:
-    url: jdbc:mysql://localhost:3306/Enclave_db
-    username: root
-    password:
+  profiles:
+    active: ${SPRING_PROFILE:dev}
   servlet:
     multipart:
       max-file-size: 100MB
@@ -15,5 +20,18 @@ spring:
 
 app:
   service:
-    python: http://localhost:5000/api
+    python: ${APP_SERVICE_PYTHON:http://localhost:5000/api}
 
+
+jwt:
+  signerKey: "MySuperSecretKeyThatIsLongEnough123!"
+  access-duration: 3600000
+  refresh-duration: 604800000
+
+security:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:https://localhost:5173}
+
+springdoc:
+  swagger-ui:
+    defaultModelsExpandDepth: -1

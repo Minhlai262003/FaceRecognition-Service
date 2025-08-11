@@ -2,7 +2,10 @@ package com.enclave.FaceRecognition.service;
 
 import com.enclave.FaceRecognition.dto.Request.PythonUserCreationRequest;
 import com.enclave.FaceRecognition.dto.Request.UserCreateRequest;
-import com.enclave.FaceRecognition.dto.Response.PythonResponse;
+import com.enclave.FaceRecognition.dto.Request.UserUpdateRequest;
+import com.enclave.FaceRecognition.dto.Response.UserResponse;
+import com.enclave.FaceRecognition.entity.Gender;
+import com.enclave.FaceRecognition.entity.Role;
 import com.enclave.FaceRecognition.entity.User;
 import com.enclave.FaceRecognition.exception.AppException;
 import com.enclave.FaceRecognition.exception.ErrorCode;
@@ -17,11 +20,17 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.Period;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -38,29 +47,56 @@ public class UserService {
         if(userRepository.existsByEmail(request.getEmail())) {
             throw new AppException(ErrorCode.EMAIL_EXISTED);
         }
-        User user = userMapper.toUser(request);
-        String password = "enclave123";
-        PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
-        user.setPassword(passwordEncoder.encode(password));
-        user.setCreatedAt(LocalDateTime.now());
-        User userInfo = userRepository.save(user);
 
-        PythonUserCreationRequest pythonUserCreationRequest = PythonUserCreationRequest.builder()
-                .name(userInfo.getLastName())
-                .employeeId(userInfo.getId())
-                .department(userInfo.getRole())
-                .build();
-        try {
-            var pythonResponse = pythonClient.registerUser(pythonUserCreationRequest, request.getFaceImages());
-            log.info("Python response: {}", pythonResponse);
-        } catch (FeignException.BadRequest e) {
-            log.error("Error setting department: {}", e.getMessage());
-            String responseBody = e.contentUTF8();
-            String errorMessage = handlePythonServiceResponse(e);
-            log.warn("Python service error response: {}", errorMessage);
-            throw new AppException(ErrorCode.PYTHON_SERVICE_ERROR);
+        if (userRepository.existsByPhoneNumber(request.getPhoneNumber()))
+            throw new AppException(ErrorCode.PHONE_EXISTED);
+
+        if (request.getBirthDay() != null) {
+            LocalDate birthDate = request.getBirthDay();
+            LocalDate now = LocalDate.now();
+            int age = Period.between(birthDate, now).getYears();
+
+            if (age < 18) {
+                throw new AppException(ErrorCode.AGE_UNDER_18);
+            }
+        } else {
+            throw new AppException(ErrorCode.DATE_OF_BIRTH_REQUIRED);
         }
 
+        try {
+            User user = userMapper.toUser(request);
+            String password = "enclave123";
+            PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
+            user.setPassword(passwordEncoder.encode(password));
+            user.setCreatedAt(LocalDateTime.now());
+            User userInfo = userRepository.save(user);
+
+            PythonUserCreationRequest pythonUserCreationRequest = PythonUserCreationRequest.builder()
+                    .name(userInfo.getLastName())
+                    .employeeId(userInfo.getId())
+                    .department(userInfo.getRole().name())
+                    .build();
+
+
+            try {
+                var pythonResponse = pythonClient.registerUser(
+                        pythonUserCreationRequest.getEmployeeId(),
+                        pythonUserCreationRequest.getName(),
+                        pythonUserCreationRequest.getDepartment(),
+                        request.getFaceImages()
+                );
+                log.info("Python response: {}", pythonResponse);
+            } catch (FeignException.BadRequest e) {
+                log.error("Error setting department: {}", e.getMessage());
+                String responseBody = e.contentUTF8();
+                String errorMessage = handlePythonServiceResponse(e);
+                log.warn("Python service error response: {}", errorMessage);
+                throw new AppException(ErrorCode.PYTHON_SERVICE_ERROR);
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            throw new RuntimeException("Error mapping UserCreateRequest to User", ex);
+        }
     }
 
     public String handlePythonServiceResponse(FeignException.BadRequest e) {
@@ -73,8 +109,8 @@ public class UserService {
             JsonNode jsonNode = objectMapper.readTree(responseBody);
 
 
-            if (jsonNode.has("message")) {
-                errorMessage = jsonNode.get("message").asText();
+            if (jsonNode.has("status")) {
+                errorMessage = jsonNode.get("status").asText();
             } else {
                 log.warn("No 'message' field found in Python service response");
             }
@@ -86,9 +122,9 @@ public class UserService {
 
     @Transactional
     public void deleteUserById(String id) {
-        // 1. Kiểm tra user có tồn tại
+        UUID uuid = UUID.fromString(id);
         if (!userRepository.existsById(id)) {
-            throw new AppException(ErrorCode.USER_DO_NOT_EXIST);
+            throw new AppException(ErrorCode.USER_NOT_EXISTED);
         }
         log.info("user id deleted: {}", id);
         pythonClient.deleteUser(id);
@@ -96,21 +132,61 @@ public class UserService {
 
     }
 
-//    public Users updateUser(Long id, UserUpdateDTO dto) {
-//        Users existingUser = userRepository.findById(id)
-//                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy user với ID = " + id));
-//
-//        existingUser.setFirstName(dto.getFirstName());
-//        existingUser.setLastName(dto.getLastName());
-//        existingUser.setEmail(dto.getEmail());
-//        existingUser.setGender(dto.getGender());
-//        existingUser.setRole(dto.getRole());
-//
-//        if (dto.getPassword() != null && !dto.getPassword().isEmpty()) {
-//            existingUser.setPassword(dto.getPassword());
-//        }
-//
-//        return userRepository.save(existingUser);
-//    }
+    public List<UserResponse> getAllUsers() {
+        List<User> users = userRepository.findAll();
 
+        return users.stream()
+                .map(userMapper::toUserResponse)
+                .toList();
     }
+
+    public UserResponse getUserById(String id) {
+        UUID uuid = UUID.fromString(id);
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        return userMapper.toUserResponse(user);
+    }
+
+    public void updateUser(String id, UserUpdateRequest userUpdateRequest) {
+        User existingUser = userRepository.findById(id)
+                .orElseThrow(() -> new BadCredentialsException("User not found"));
+
+        Optional.ofNullable(userUpdateRequest.getFirstName())
+                .ifPresent(existingUser::setFirstName);
+
+        Optional.ofNullable(userUpdateRequest.getLastName())
+                .ifPresent(existingUser::setLastName);
+
+        Optional.ofNullable(userUpdateRequest.getEmail())
+                .ifPresent(existingUser::setEmail);
+
+        Optional.ofNullable(userUpdateRequest.getPhoneNumber())
+                .ifPresent(existingUser::setPhoneNumber);
+
+        Optional.ofNullable(userUpdateRequest.getBirthDay())
+                .ifPresent(existingUser::setBirthDay);
+
+        Optional.ofNullable(userUpdateRequest.getGender())
+                .ifPresent(g -> {
+                    try {
+                        existingUser.setGender(Gender.valueOf(g.toUpperCase()));
+                    } catch (IllegalArgumentException e) {
+                        throw new BadCredentialsException("Invalid gender value");
+                    }
+                });
+
+        Optional.ofNullable(userUpdateRequest.getRole())
+                .ifPresent(r -> {
+                    try {
+                        existingUser.setRole(Role.valueOf(r.toUpperCase()));
+                    } catch (IllegalArgumentException e) {
+                        throw new BadCredentialsException("Invalid role value");
+                    }
+                });
+
+
+         userRepository.save(existingUser);
+    }
+
+
+}
