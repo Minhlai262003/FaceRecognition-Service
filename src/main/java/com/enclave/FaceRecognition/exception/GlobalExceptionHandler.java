@@ -116,4 +116,13 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new ApiResponse(500, "Internal server error", false, null));
     }
+    @ExceptionHandler(TopicNotFoundException.class)
+    public ResponseEntity<ApiResponse<Object>> handleTopicNotFoundException(TopicNotFoundException ex) {
+        ApiResponse<Object> response = ApiResponse.<Object>builder()
+                .status(HttpStatus.NOT_FOUND.value())
+                .message(ex.getMessage())
+                .success(false)
+                .build();
+        return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+    }
 }

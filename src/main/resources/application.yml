@@ -11,6 +11,7 @@ server:
     key-alias: myalias
 
 spring:
+
   profiles:
     active: ${SPRING_PROFILE:dev}
   servlet:

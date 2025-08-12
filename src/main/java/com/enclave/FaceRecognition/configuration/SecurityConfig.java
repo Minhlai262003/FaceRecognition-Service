@@ -40,8 +40,11 @@ public class SecurityConfig {
             "/users/**",
             "/v3/api-docs/**",
             "/swagger-ui/**",
-            "/swagger-ui.html"
-    };
+            "/swagger-ui.html",
+            "/topics/{id}",
+            "/topics/**"
+
+ };
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http, JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint) throws Exception {

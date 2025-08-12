@@ -5,12 +5,13 @@ import com.enclave.FaceRecognition.dto.Response.TopicResponse;
 import com.enclave.FaceRecognition.entity.Topic;
 import com.enclave.FaceRecognition.mapper.TopicMapper;
 import com.enclave.FaceRecognition.service.TopicService;
+import io.swagger.v3.oas.annotations.Parameter;
+import org.springframework.web.bind.annotation.RequestBody;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import com.enclave.FaceRecognition.dto.Request.UpdateTopicRequest;
 
 import java.util.List;
 
@@ -22,10 +23,61 @@ public class TopicController {
     private final TopicService topicService;
     private final TopicMapper topicMapper;
 
+
     @GetMapping
     public ResponseEntity<ApiResponse<List<TopicResponse>>> getAllTopics() {
         List<Topic> topics = topicService.fetchAllTopics();
         List<TopicResponse> response = topicMapper.toTopicResponseList(topics);
         return ResponseEntity.ok(ApiResponse.<List<TopicResponse>>builder().status(200).message("Fetched data successfully").success(true).data(response).build());
     }
+    @PutMapping("/{id}")
+    public ResponseEntity<ApiResponse<TopicResponse>> updateTopic(
+            @PathVariable Long id,
+            @RequestBody UpdateTopicRequest request) {
+
+        try {
+            Topic updatedTopic = topicService.updateTopicName(id, request.getName());
+            System.out.println(" name "+ request.getName()+"");
+            TopicResponse response = topicMapper.toTopicResponse(updatedTopic);
+            return ResponseEntity.ok(ApiResponse.<TopicResponse>builder()
+                    .status(200)
+                    .message("Topic updated successfully")
+                    .success(true)
+                    .data(response)
+                    .build());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.<TopicResponse>builder()
+                    .status(400)
+                    .message(e.getMessage())
+                    .success(false)
+                    .build());
+        }
+    }
+
+
+
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<TopicResponse>> getTopicById(@PathVariable Long id) {
+        Topic topic = topicService.getTopicById(id);
+        TopicResponse response = topicMapper.toTopicResponse(topic);
+
+        return ResponseEntity.ok(ApiResponse.<TopicResponse>builder()
+                .status(200)
+                .message("Fetched topic successfully")
+                .success(true)
+                .data(response)
+                .build());
+    }
+
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> deleteTopicById(@PathVariable Long id) {
+        topicService.deleteTopicById(id);
+        return ResponseEntity.ok(ApiResponse.<Void>builder()
+                .status(200)
+                .message("Topic deleted successfully")
+                .success(true)
+                .build());
+    }
+
 }
