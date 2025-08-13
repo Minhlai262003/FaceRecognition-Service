@@ -3,13 +3,19 @@ package com.enclave.FaceRecognition.service;
 import com.enclave.FaceRecognition.dto.Request.PythonUserCreationRequest;
 import com.enclave.FaceRecognition.dto.Request.UserCreateRequest;
 import com.enclave.FaceRecognition.dto.Request.UserUpdateRequest;
+import com.enclave.FaceRecognition.dto.Response.PythonResponse;
+import com.enclave.FaceRecognition.dto.Response.UserPythonResponse;
+import com.enclave.FaceRecognition.dto.Response.UserRecognitionResponse;
 import com.enclave.FaceRecognition.dto.Response.UserResponse;
 import com.enclave.FaceRecognition.entity.Gender;
 import com.enclave.FaceRecognition.entity.Role;
 import com.enclave.FaceRecognition.entity.User;
 import com.enclave.FaceRecognition.exception.AppException;
+import com.enclave.FaceRecognition.exception.DuplicateFieldException;
 import com.enclave.FaceRecognition.exception.ErrorCode;
+import com.enclave.FaceRecognition.exception.PythonServiceValidationException;
 import com.enclave.FaceRecognition.mapper.UserMapper;
+import com.enclave.FaceRecognition.mapper.UserRecognitionMapper;
 import com.enclave.FaceRecognition.repository.UserRepository;
 import com.enclave.FaceRecognition.repository.httpclient.PythonClient;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -20,10 +26,13 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.MethodParameter;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -41,15 +50,14 @@ public class UserService {
     UserMapper userMapper;
     PythonClient pythonClient;
     ObjectMapper objectMapper;
-
     @Transactional
     public void createUser(UserCreateRequest request){
         if(userRepository.existsByEmail(request.getEmail())) {
-            throw new AppException(ErrorCode.EMAIL_EXISTED);
+            throw new DuplicateFieldException("Email already exists");
         }
 
         if (userRepository.existsByPhoneNumber(request.getPhoneNumber()))
-            throw new AppException(ErrorCode.PHONE_EXISTED);
+            throw new DuplicateFieldException("Phone number already exists");
 
         if (request.getBirthDay() != null) {
             LocalDate birthDate = request.getBirthDay();
@@ -59,8 +67,6 @@ public class UserService {
             if (age < 18) {
                 throw new AppException(ErrorCode.AGE_UNDER_18);
             }
-        } else {
-            throw new AppException(ErrorCode.DATE_OF_BIRTH_REQUIRED);
         }
 
         try {
@@ -72,7 +78,7 @@ public class UserService {
             User userInfo = userRepository.save(user);
 
             PythonUserCreationRequest pythonUserCreationRequest = PythonUserCreationRequest.builder()
-                    .name(userInfo.getLastName())
+                    .name(userInfo.getFirstName())
                     .employeeId(userInfo.getId())
                     .department(userInfo.getRole().name())
                     .build();
@@ -98,6 +104,27 @@ public class UserService {
             throw new RuntimeException("Error mapping UserCreateRequest to User", ex);
         }
     }
+
+    public PythonResponse<UserRecognitionResponse> recognizeUser(MultipartFile fileImage) {
+        try {
+            var pythonResponse = pythonClient.recognize(fileImage);
+            if (Boolean.FALSE.equals(pythonResponse.getSuccess())) {
+                throw new PythonServiceValidationException(pythonResponse.getMessage());
+            }
+            UserRecognitionResponse user = UserRecognitionMapper.fromPythonResponse(pythonResponse.getUser());
+            return PythonResponse.<UserRecognitionResponse>builder()
+                    .status(pythonResponse.getStatus())
+                    .message(pythonResponse.getMessage())
+                    .success(pythonResponse.getSuccess())
+                    .user(user)
+                    .build();
+
+        } catch (FeignException.BadRequest e) {
+            throw new AppException(ErrorCode.PYTHON_SERVICE_ERROR);
+        }
+    }
+
+
 
     public String handlePythonServiceResponse(FeignException.BadRequest e) {
         String errorMessage = "Failed to set department in Python service";

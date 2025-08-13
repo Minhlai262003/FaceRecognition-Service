@@ -13,6 +13,10 @@ public interface UserMapper {
     @Mapping(target = "password", ignore = true)
     @Mapping(target = "gender", expression = "java(this.mapGender(request.getGender()))")
     @Mapping(target = "role", expression = "java(this.mapRole(request.getRole()))")
+    @Mapping(source = "firstName", target = "firstName")
+    @Mapping(source = "lastName", target = "lastName")
+    @Mapping(source = "phoneNumber", target = "phoneNumber")
+    @Mapping(source = "birthDay", target = "birthDay")
     User toUser(UserCreateRequest request);
 
     UserResponse toUserResponse(User user);

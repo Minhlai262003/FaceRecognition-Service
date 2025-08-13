@@ -9,6 +9,8 @@ import com.enclave.FaceRecognition.dto.Response.AuthenticationResponse;
 import com.enclave.FaceRecognition.dto.Response.IntrospectResponse;
 import com.enclave.FaceRecognition.service.AuthenticationService;
 import com.nimbusds.jose.JOSEException;
+import io.swagger.v3.oas.annotations.Hidden;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +26,7 @@ import java.text.ParseException;
 @RequestMapping("/auth")
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@Tag(name = "Authentication APIs")
 public class AuthenticationController {
 
     AuthenticationService authenticationService;
@@ -38,7 +41,7 @@ public class AuthenticationController {
                 .data(result)
                 .build();
     }
-
+    @Hidden
     @PostMapping("/introspect")
     public ApiResponse<IntrospectResponse> introspect(@RequestBody IntrospectRequest request)
             throws ParseException, JOSEException {

@@ -116,4 +116,16 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new ApiResponse(500, "Internal server error", false, null));
     }
+    @ExceptionHandler(PythonServiceValidationException.class)
+    public ResponseEntity<ApiResponse<?>> handlePythonServiceValidation(PythonServiceValidationException ex) {
+        return ResponseEntity.badRequest()
+                .body(new ApiResponse<>(400, ex.getMessage(), false, null));
+    }
+
+    @ExceptionHandler(DuplicateFieldException.class)
+    public ResponseEntity<ApiResponse<?>> handleDuplicateField(DuplicateFieldException ex) {
+        return ResponseEntity.badRequest()
+                .body(new ApiResponse<>(HttpStatus.CONFLICT.value(), ex.getMessage(), false, null));
+    }
+
 }

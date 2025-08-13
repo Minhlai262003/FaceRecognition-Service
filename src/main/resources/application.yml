@@ -18,19 +18,10 @@ spring:
       max-file-size: 100MB
       max-request-size: 100MB
 
-app:
-  service:
-    python: ${APP_SERVICE_PYTHON:http://localhost:5000/api}
-
-
 jwt:
   signerKey: "MySuperSecretKeyThatIsLongEnough123!"
   access-duration: 3600000
   refresh-duration: 604800000
-
-security:
-  cors:
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:https://localhost:5173}
 
 springdoc:
   swagger-ui:

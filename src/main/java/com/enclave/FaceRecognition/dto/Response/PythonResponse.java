@@ -9,7 +9,9 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class PythonResponse {
+public class PythonResponse <T> {
     String message;
-    String status;
+    int status;
+    Boolean success;
+    T user;
 }
