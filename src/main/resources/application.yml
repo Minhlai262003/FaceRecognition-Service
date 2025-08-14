@@ -3,16 +3,16 @@ server:
   address: 0.0.0.0
   servlet:
     context-path: /enclave
-  ssl:
-    enabled: true
-    key-store: classpath:keystore.p12
-    key-store-password: enclave
-    key-store-type: PKCS12
-    key-alias: myalias
+#  ssl:
+#    enabled: true
+#    key-store: classpath:keystore.p12
+#    key-store-password: enclave
+#    key-store-type: PKCS12
+#    key-alias: myalias
 
 spring:
   profiles:
-    active: ${SPRING_PROFILE:dev}
+    active: ${SPRING_PROFILE:prod}
   servlet:
     multipart:
       max-file-size: 100MB

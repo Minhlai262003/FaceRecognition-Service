@@ -11,10 +11,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class UserRecognitionResponse {
-    @JsonProperty("user_id")
     private String userID;
-    @JsonProperty("user_name")
     private String userName;
-    @JsonProperty("role")
     private String role;
 }

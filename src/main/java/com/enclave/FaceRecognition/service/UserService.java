@@ -108,9 +108,9 @@ public class UserService {
     public PythonResponse<UserRecognitionResponse> recognizeUser(MultipartFile fileImage) {
         try {
             var pythonResponse = pythonClient.recognize(fileImage);
-            if (Boolean.FALSE.equals(pythonResponse.getSuccess())) {
-                throw new PythonServiceValidationException(pythonResponse.getMessage());
-            }
+//            if (Boolean.FALSE.equals(pythonResponse.getSuccess())) {
+//                throw new PythonServiceValidationException(pythonResponse.getMessage());
+//            }
             UserRecognitionResponse user = UserRecognitionMapper.fromPythonResponse(pythonResponse.getUser());
             return PythonResponse.<UserRecognitionResponse>builder()
                     .status(pythonResponse.getStatus())

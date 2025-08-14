@@ -7,6 +7,7 @@ import com.enclave.FaceRecognition.dto.Response.UserPythonResponse;
 import com.enclave.FaceRecognition.dto.Response.UserRecognitionResponse;
 import com.enclave.FaceRecognition.dto.Response.UserResponse;
 import com.enclave.FaceRecognition.entity.User;
+import com.enclave.FaceRecognition.security.PublicEndpoint;
 import com.enclave.FaceRecognition.service.UserService;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -17,6 +18,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -43,13 +46,14 @@ public class UserController {
                 .success(true)
                 .build();
     }
+
     @PostMapping(path = "/recognize", consumes = "multipart/form-data")
     public ApiResponse<UserRecognitionResponse> recognize(@RequestParam("image") MultipartFile fileImage) {
         var response = userService.recognizeUser(fileImage);
         return ApiResponse.<UserRecognitionResponse>builder()
                 .status(200)
                 .message(response.getMessage())
-                .success(true)
+                .success(response.getSuccess())
                 .data(response.getUser())
                 .build();
     }
