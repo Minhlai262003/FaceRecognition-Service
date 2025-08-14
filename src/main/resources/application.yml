@@ -4,7 +4,7 @@ server:
   servlet:
     context-path: /enclave
   ssl:
-    enabled: true
+    enabled: false
     key-store: classpath:keystore.p12
     key-store-password: enclave
     key-store-type: PKCS12
@@ -31,7 +31,7 @@ jwt:
 
 security:
   cors:
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:https://localhost:5173}
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
 
 springdoc:
   swagger-ui:

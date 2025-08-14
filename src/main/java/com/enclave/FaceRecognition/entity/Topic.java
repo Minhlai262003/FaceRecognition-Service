@@ -18,7 +18,7 @@ public class Topic {
     private String name;
 
     @OneToMany(mappedBy = "topic", cascade = CascadeType.ALL,  orphanRemoval = true)
-    private List<Vocabulary> vocabularies;
+    private List<Word> words;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class VocabularyResponse {
+public class WordResponse {
     private Long id;
     private String word;
     private String pronunciation;

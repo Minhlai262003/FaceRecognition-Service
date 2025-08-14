@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import com.enclave.FaceRecognition.dto.Request.UpdateTopicRequest;
 
 import java.util.List;
-
+@CrossOrigin(origins = "http://localhost:5173")
 @SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping("/topics")
