@@ -22,8 +22,8 @@ public class Word {
     @Column(name = "part_of_speech")
     private String partOfSpeech;
 
-    private String definition;
-    private String example;
+    private String mean;
+
 
     @ManyToOne
     @JoinColumn(name = "topic_id")
@@ -54,13 +54,11 @@ public class Word {
         this.partOfSpeech = partOfSpeech;
     }
 
-    public void setDefinition(String definition) {
-        this.definition = definition;
+    public void setMean(String mean) {
+        this.mean = mean;
     }
 
-    public void setExample(String example) {
-        this.example = example;
-    }
+
 
     public void setTopic(Topic topic) {
         this.topic = topic;
@@ -90,12 +88,8 @@ public class Word {
         return partOfSpeech;
     }
 
-    public String getDefinition() {
-        return definition;
-    }
-
-    public String getExample() {
-        return example;
+    public String getMean() {
+        return mean;
     }
 
     public Topic getTopic() {

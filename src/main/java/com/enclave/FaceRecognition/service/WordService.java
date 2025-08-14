@@ -38,8 +38,7 @@ public class WordService {
         existingWord.setWord(wordResponse.getWord());
         existingWord.setPronunciation(wordResponse.getPronunciation());
         existingWord.setPartOfSpeech(wordResponse.getPartOfSpeech());
-        existingWord.setDefinition(wordResponse.getDefinition());
-        existingWord.setExample(wordResponse.getExample());
+        existingWord.setMean(wordResponse.getMean());
         existingWord.setUpdatedAt(LocalDateTime.now());
 
         Word savedWord = wordRepository.save(existingWord);
@@ -52,8 +51,7 @@ public class WordService {
         dto.setWord(word.getWord());
         dto.setPronunciation(word.getPronunciation());
         dto.setPartOfSpeech(word.getPartOfSpeech());
-        dto.setDefinition(word.getDefinition());
-        dto.setExample(word.getExample());
+        dto.setMean(word.getMean());
         dto.setCreatedAt(word.getCreatedAt());
         dto.setUpdatedAt(word.getUpdatedAt());
         return dto;
