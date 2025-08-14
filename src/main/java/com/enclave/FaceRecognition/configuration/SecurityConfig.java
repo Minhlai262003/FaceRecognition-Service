@@ -2,6 +2,7 @@ package com.enclave.FaceRecognition.configuration;
 
 import com.enclave.FaceRecognition.security.JwtAuthenticationEntryPoint;
 import com.enclave.FaceRecognition.security.JwtAuthenticationFilter;
+import com.enclave.FaceRecognition.security.PublicEndpointRequestMatcher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -37,7 +38,7 @@ public class SecurityConfig {
     private static final String[] PUBLIC_ENDPOINTS = {
             "/auth/login",
             "/users",
-            "/users/**",
+            "/users/recognize",
             "/v3/api-docs/**",
             "/swagger-ui/**",
             "/swagger-ui.html"
@@ -51,6 +52,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
+                        .requestMatchers(new PublicEndpointRequestMatcher()).permitAll()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex

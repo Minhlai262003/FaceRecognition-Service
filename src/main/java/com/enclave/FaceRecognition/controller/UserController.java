@@ -3,18 +3,26 @@ package com.enclave.FaceRecognition.controller;
 import com.enclave.FaceRecognition.dto.Request.UserCreateRequest;
 import com.enclave.FaceRecognition.dto.Request.UserUpdateRequest;
 import com.enclave.FaceRecognition.dto.Response.ApiResponse;
+import com.enclave.FaceRecognition.dto.Response.UserPythonResponse;
+import com.enclave.FaceRecognition.dto.Response.UserRecognitionResponse;
 import com.enclave.FaceRecognition.dto.Response.UserResponse;
 import com.enclave.FaceRecognition.entity.User;
+import com.enclave.FaceRecognition.security.PublicEndpoint;
 import com.enclave.FaceRecognition.service.UserService;
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.UUID;
@@ -25,6 +33,7 @@ import java.util.UUID;
 @RequestMapping("/users")
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@Tag(name = "User APIs")
 public class UserController {
     UserService userService;
 
@@ -38,7 +47,18 @@ public class UserController {
                 .build();
     }
 
+    @PostMapping(path = "/recognize", consumes = "multipart/form-data")
+    public ApiResponse<UserRecognitionResponse> recognize(@RequestParam("image") MultipartFile fileImage) {
+        var response = userService.recognizeUser(fileImage);
+        return ApiResponse.<UserRecognitionResponse>builder()
+                .status(200)
+                .message(response.getMessage())
+                .success(response.getSuccess())
+                .data(response.getUser())
+                .build();
+    }
 
+    @Hidden
     @DeleteMapping("/{id}")
     public ApiResponse<String> deleteUser(@PathVariable String id) {
         userService.deleteUserById(id);
@@ -48,7 +68,7 @@ public class UserController {
                 .success(true)
                 .build();
     }
-
+    @Hidden
     @GetMapping
     public ApiResponse<List<UserResponse>> getAllUsers(){
         List<UserResponse> users = userService.getAllUsers();
@@ -59,6 +79,7 @@ public class UserController {
                 .data(users)
                 .build();
     }
+    @Hidden
     @GetMapping("/{id}")
     public ApiResponse<UserResponse> getUser(@PathVariable String id) {
         UserResponse user = userService.getUserById(id);
@@ -69,7 +90,7 @@ public class UserController {
                 .data(user)
                 .build();
     }
-
+    @Hidden
     @PutMapping("/{id}")
     public ApiResponse<?> updateUser(
             @PathVariable String id,
