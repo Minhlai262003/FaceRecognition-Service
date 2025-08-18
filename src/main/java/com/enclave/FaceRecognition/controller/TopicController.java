@@ -3,6 +3,7 @@ package com.enclave.FaceRecognition.controller;
 import com.enclave.FaceRecognition.dto.Response.ApiResponse;
 import com.enclave.FaceRecognition.dto.Response.TopicResponse;
 import com.enclave.FaceRecognition.entity.Topic;
+import com.enclave.FaceRecognition.exception.TopicNotFoundException;
 import com.enclave.FaceRecognition.mapper.TopicMapper;
 import com.enclave.FaceRecognition.service.TopicService;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -13,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.enclave.FaceRecognition.dto.Request.UpdateTopicRequest;
 
+import java.util.ArrayList;
 import java.util.List;
 @CrossOrigin(origins = "http://localhost:5173")
 @SecurityRequirement(name = "bearerAuth")
@@ -34,26 +36,44 @@ public class TopicController {
     public ResponseEntity<ApiResponse<TopicResponse>> updateTopic(
             @PathVariable Long id,
             @RequestBody UpdateTopicRequest request) {
-
         try {
             Topic updatedTopic = topicService.updateTopicName(id, request.getName());
-            System.out.println(" name "+ request.getName()+"");
-            TopicResponse response = topicMapper.toTopicResponse(updatedTopic);
+
+            // Tránh null vocabularies
+            TopicResponse response = new TopicResponse();
+            response.setId(updatedTopic.getId());
+            response.setName(updatedTopic.getName());
+            response.setCreatedAt(updatedTopic.getCreatedAt());
+            response.setUpdatedAt(updatedTopic.getUpdatedAt());
+
             return ResponseEntity.ok(ApiResponse.<TopicResponse>builder()
                     .status(200)
                     .message("Topic updated successfully")
                     .success(true)
                     .data(response)
                     .build());
+
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(ApiResponse.<TopicResponse>builder()
                     .status(400)
                     .message(e.getMessage())
                     .success(false)
                     .build());
+        } catch (TopicNotFoundException e) {
+            return ResponseEntity.status(404).body(ApiResponse.<TopicResponse>builder()
+                    .status(404)
+                    .message(e.getMessage())
+                    .success(false)
+                    .build());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(ApiResponse.<TopicResponse>builder()
+                    .status(500)
+                    .message("Internal server error")
+                    .success(false)
+                    .build());
         }
     }
-
 
 
     @GetMapping("/{id}")

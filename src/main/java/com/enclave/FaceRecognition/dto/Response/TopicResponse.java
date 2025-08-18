@@ -16,7 +16,6 @@ import java.util.List;
 public class TopicResponse {
     private Long id;
     private String name;
-    private List<WordResponse> vocabularies;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

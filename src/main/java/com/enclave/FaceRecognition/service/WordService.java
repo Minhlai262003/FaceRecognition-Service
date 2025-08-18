@@ -33,7 +33,7 @@ public class WordService {
     // Update word
     public WordResponse updateWord(Long id, WordResponse wordResponse) {
         Word existingWord = wordRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Word not found"));
+                .orElseThrow(() -> new RuntimeException("Word not found with "+id));
 
         existingWord.setWord(wordResponse.getWord());
         existingWord.setPronunciation(wordResponse.getPronunciation());
