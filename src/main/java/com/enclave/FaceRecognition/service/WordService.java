@@ -2,58 +2,66 @@ package com.enclave.FaceRecognition.service;
 
 import com.enclave.FaceRecognition.dto.Response.WordResponse;
 import com.enclave.FaceRecognition.entity.Word;
+import com.enclave.FaceRecognition.entity.Topic;
 import com.enclave.FaceRecognition.repository.WordRepository;
+import com.enclave.FaceRecognition.repository.TopicRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class WordService {
-
     private final WordRepository wordRepository;
+    private final TopicRepository topicRepository;
 
-    public WordService(WordRepository wordRepository) {
-        this.wordRepository = wordRepository;
-    }
-
-    public List<WordResponse> getByTopicId(Long topicId) {
-        return wordRepository.findByTopic_Id(topicId)
+    // Get all words of a topic
+    public List<WordResponse> getWordsByTopic(Long topicId) {
+        return wordRepository.findByTopicId(topicId)
                 .stream()
-                .map(this::convertToDTO)
+                .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
 
-    public void deleteWordById(String id) {
-        Long wordId = Long.parseLong(id);
-        wordRepository.deleteById(wordId);
+    // Create new word
+    public WordResponse createWord(Long topicId, Word word) {
+        Topic topic = topicRepository.findById(topicId)
+                .orElseThrow(() -> new IllegalArgumentException("Topic not found"));
+        word.setTopic(topic);
+        return mapToResponse(wordRepository.save(word));
     }
 
     // Update word
-    public WordResponse updateWord(Long id, WordResponse wordResponse) {
-        Word existingWord = wordRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Word not found with "+id));
+    public WordResponse updateWord(Long wordId, Word updatedWord) {
+        Word word = wordRepository.findById(wordId)
+                .orElseThrow(() -> new IllegalArgumentException("Word not found"));
 
-        existingWord.setWord(wordResponse.getWord());
-        existingWord.setPronunciation(wordResponse.getPronunciation());
-        existingWord.setPartOfSpeech(wordResponse.getPartOfSpeech());
-        existingWord.setMean(wordResponse.getMean());
-        existingWord.setUpdatedAt(LocalDateTime.now());
+        word.setWord(updatedWord.getWord());
+        word.setPronunciation(updatedWord.getPronunciation());
+        word.setPartOfSpeech(updatedWord.getPartOfSpeech());
+        word.setMean(updatedWord.getMean());
 
-        Word savedWord = wordRepository.save(existingWord);
-        return convertToDTO(savedWord);
+        return mapToResponse(wordRepository.save(word));
     }
 
-    private WordResponse convertToDTO(Word word) {
-        WordResponse dto = new WordResponse();
-        dto.setId(word.getId());
-        dto.setWord(word.getWord());
-        dto.setPronunciation(word.getPronunciation());
-        dto.setPartOfSpeech(word.getPartOfSpeech());
-        dto.setMean(word.getMean());
-        dto.setCreatedAt(word.getCreatedAt());
-        dto.setUpdatedAt(word.getUpdatedAt());
-        return dto;
+    // Delete word
+    public void deleteWord(Long wordId) {
+        Word word = wordRepository.findById(wordId)
+                .orElseThrow(() -> new IllegalArgumentException("Word not found"));
+        wordRepository.delete(word);
+    }
+
+    private WordResponse mapToResponse(Word word) {
+        return WordResponse.builder()
+                .id(word.getId())
+                .word(word.getWord())
+                .pronunciation(word.getPronunciation())
+                .partOfSpeech(word.getPartOfSpeech())
+                .mean(word.getMean())
+                .createdAt(word.getCreatedAt())
+                .updatedAt(word.getUpdatedAt())
+                .build();
     }
 }

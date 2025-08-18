@@ -58,8 +58,6 @@ public class Word {
         this.mean = mean;
     }
 
-
-
     public void setTopic(Topic topic) {
         this.topic = topic;
     }

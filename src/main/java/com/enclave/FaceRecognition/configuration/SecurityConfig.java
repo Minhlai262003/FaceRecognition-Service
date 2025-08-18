@@ -42,9 +42,10 @@ public class SecurityConfig {
             "/swagger-ui/**",
             "/swagger-ui.html",
             "/topics/{id}",
-            "/topics/**"
+            "/topics/**",
+            "/topics/*/words/**"
 
- };
+    };
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {

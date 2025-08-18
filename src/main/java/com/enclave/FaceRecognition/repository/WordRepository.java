@@ -8,6 +8,6 @@ import java.util.List;
 
 @Repository
 public interface WordRepository extends JpaRepository<Word, Long> {
-    List<Word> findByTopic_Id(Long topicId);
+    List<Word> findByTopicId(Long topicId);
 }
 

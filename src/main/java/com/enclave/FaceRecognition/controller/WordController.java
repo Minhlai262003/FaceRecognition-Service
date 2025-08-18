@@ -1,65 +1,125 @@
 package com.enclave.FaceRecognition.controller;
 
+import com.enclave.FaceRecognition.dto.Response.ApiResponse;
 import com.enclave.FaceRecognition.dto.Response.WordResponse;
 import com.enclave.FaceRecognition.entity.Word;
+import com.enclave.FaceRecognition.exception.WordNotFoundException;
 import com.enclave.FaceRecognition.service.WordService;
-import org.antlr.v4.runtime.Vocabulary;
-import org.springframework.http.HttpStatus;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @RestController
-@RequestMapping("/words")
+@RequestMapping("/topics/{topicId}/words")
+@RequiredArgsConstructor
 public class WordController {
 
     private final WordService wordService;
 
-    public WordController(WordService vocabularyService) {
-        this.wordService = vocabularyService;
-    }
-
-    @GetMapping("/topic/{topicId}")
-    public ResponseEntity<Map<String, Object>> getByTopicId(@PathVariable Long topicId) {
-        List<WordResponse> words = wordService.getByTopicId(topicId);
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("status", 200);
-        response.put("message", "Fetched data successfully");
-        response.put("success", true);
-        response.put("data", words);
-
-        return ResponseEntity.ok(response);
-    }
-
-    @DeleteMapping("/enclave/words/{id}")
-    public ResponseEntity<?> deleteVocabulary(@PathVariable String id) {
+    // GET all words of a topic
+    @GetMapping
+    public ResponseEntity<ApiResponse<List<WordResponse>>> getAllWords(@PathVariable Long topicId) {
         try {
-            wordService.deleteWordById(id);
-            return ResponseEntity.ok(Map.of(
-                    "status", 200,
-                    "success", true,
-                    "message", "Word deleted successfully"
-            ));
+            List<WordResponse> words = wordService.getWordsByTopic(topicId);
+            return ResponseEntity.ok(ApiResponse.<List<WordResponse>>builder()
+                    .status(200)
+                    .message("Get all words successfully")
+                    .success(true)
+                    .data(words)
+                    .build());
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
-                    "status", 500,
-                    "success", false,
-                    "message", e.getMessage()
-            ));
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(ApiResponse.<List<WordResponse>>builder()
+                    .status(500)
+                    .message("Internal server error")
+                    .success(false)
+                    .build());
         }
     }
 
-    // Update word
-    @PutMapping("/{id}")
-    public WordResponse updateWord(
-            @PathVariable Long id,
-            @RequestBody WordResponse wordResponse
-    ) {
-        return wordService.updateWord(id, wordResponse);
+    // POST create new word
+    @PostMapping
+    public ResponseEntity<ApiResponse<WordResponse>> createWord(@PathVariable Long topicId, @RequestBody Word word) {
+        try {
+            WordResponse created = wordService.createWord(topicId, word);
+            return ResponseEntity.status(201).body(ApiResponse.<WordResponse>builder()
+                    .status(201)
+                    .message("Word created successfully")
+                    .success(true)
+                    .data(created)
+                    .build());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.<WordResponse>builder()
+                    .status(400)
+                    .message(e.getMessage())
+                    .success(false)
+                    .build());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(ApiResponse.<WordResponse>builder()
+                    .status(500)
+                    .message("Internal server error")
+                    .success(false)
+                    .build());
+        }
     }
 
+    // PUT update word
+    @PutMapping("/{wordId}")
+    public ResponseEntity<ApiResponse<WordResponse>> updateWord(
+            @PathVariable Long wordId,
+            @RequestBody Word word) {
+        try {
+            WordResponse updated = wordService.updateWord(wordId, word);
+            return ResponseEntity.ok(ApiResponse.<WordResponse>builder()
+                    .status(200)
+                    .message("Word updated successfully")
+                    .success(true)
+                    .data(updated)
+                    .build());
+        } catch (WordNotFoundException e) {
+            return ResponseEntity.status(404).body(ApiResponse.<WordResponse>builder()
+                    .status(404)
+                    .message(e.getMessage())
+                    .success(false)
+                    .build());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(ApiResponse.<WordResponse>builder()
+                    .status(500)
+                    .message("Internal server error")
+                    .success(false)
+                    .build());
+        }
+    }
+
+    // DELETE word
+    @DeleteMapping("/{wordId}")
+    public ResponseEntity<ApiResponse<Void>> deleteWord(@PathVariable Long topicId, @PathVariable Long wordId) {
+        try {
+            wordService.deleteWord(wordId);
+            return ResponseEntity.status(200).body(ApiResponse.<Void>builder()
+                    .status(200)
+                    .message("Word deleted successfully")
+                    .success(true)
+                    .build());
+            // Nếu muốn chuẩn REST hơn:
+            // return ResponseEntity.noContent().build();
+        } catch (WordNotFoundException e) {
+            return ResponseEntity.status(404).body(ApiResponse.<Void>builder()
+                    .status(404)
+                    .message(e.getMessage())
+                    .success(false)
+                    .build());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(ApiResponse.<Void>builder()
+                    .status(500)
+                    .message("Internal server error")
+                    .success(false)
+                    .build());
+        }
+    }
 }
