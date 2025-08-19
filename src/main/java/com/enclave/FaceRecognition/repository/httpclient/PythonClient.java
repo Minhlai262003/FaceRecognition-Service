@@ -3,6 +3,8 @@ package com.enclave.FaceRecognition.repository.httpclient;
 
 import com.enclave.FaceRecognition.configuration.FeignClientConfig;
 import com.enclave.FaceRecognition.dto.Request.PythonUserCreationRequest;
+import com.enclave.FaceRecognition.dto.Response.PythonResponse;
+import com.enclave.FaceRecognition.dto.Response.UserPythonResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -14,11 +16,15 @@ import java.util.List;
 public interface PythonClient {
     @PostMapping(value = "/register", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     Object registerUser(
-            @RequestPart("employee_id") String employeeId,
+            @RequestPart("user_id") String employeeId,
             @RequestPart("name") String name,
             @RequestPart("department") String department,
             @RequestPart("face_images") List<MultipartFile> faceImages
     );
-    @DeleteMapping(value = "/employees/{employee_id}")
-    void deleteUser(@PathVariable String employee_id);
+    @DeleteMapping(value = "/users/{user_id}")
+    void deleteUser(@PathVariable String user_id);
+    @PostMapping(value = "/recognize", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    PythonResponse<UserPythonResponse> recognize(
+            @RequestPart("image") MultipartFile fileImage
+    );
 }

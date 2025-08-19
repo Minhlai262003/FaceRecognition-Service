@@ -8,6 +8,7 @@ import com.enclave.FaceRecognition.mapper.TopicMapper;
 import com.enclave.FaceRecognition.service.TopicService;
 import io.swagger.v3.oas.annotations.Parameter;
 import org.springframework.web.bind.annotation.RequestBody;
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +27,7 @@ public class TopicController {
     private final TopicMapper topicMapper;
 
 
+    @Hidden
     @GetMapping
     public ResponseEntity<ApiResponse<List<TopicResponse>>> getAllTopics() {
         List<Topic> topics = topicService.fetchAllTopics();

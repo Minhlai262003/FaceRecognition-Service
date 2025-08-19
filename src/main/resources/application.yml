@@ -13,16 +13,11 @@ server:
 spring:
 
   profiles:
-    active: ${SPRING_PROFILE:dev}
+    active: ${SPRING_PROFILE:prod}
   servlet:
     multipart:
       max-file-size: 100MB
       max-request-size: 100MB
-
-app:
-  service:
-    python: ${APP_SERVICE_PYTHON:http://localhost:5000/api}
-
 
 jwt:
   signerKey: "MySuperSecretKeyThatIsLongEnough123!"
