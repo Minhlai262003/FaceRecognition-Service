@@ -11,13 +11,12 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class VocabularyResponse {
+public class WordResponse {
     private Long id;
     private String word;
     private String pronunciation;
     private String partOfSpeech;
-    private String definition;
-    private String example;
+    private String mean;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

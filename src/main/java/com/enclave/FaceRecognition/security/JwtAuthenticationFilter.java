@@ -30,6 +30,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
+        String path = request.getServletPath();
+        if (path.equals("/enclave/auth/login")
+                || path.equals("/enclave/auth/register")
+                || path.equals("/enclave/auth/refresh-token")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         String jwt = parseJwt(request);
 
