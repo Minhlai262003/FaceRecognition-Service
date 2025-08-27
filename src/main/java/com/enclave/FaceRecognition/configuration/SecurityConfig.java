@@ -3,6 +3,7 @@ package com.enclave.FaceRecognition.configuration;
 import com.enclave.FaceRecognition.security.JwtAuthenticationEntryPoint;
 import com.enclave.FaceRecognition.security.JwtAuthenticationFilter;
 import com.enclave.FaceRecognition.security.PublicEndpointRequestMatcher;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -26,7 +27,7 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity
+@EnableMethodSecurity(prePostEnabled = true)
 @RequiredArgsConstructor
 public class SecurityConfig {
 

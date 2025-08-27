@@ -36,8 +36,11 @@ import com.enclave.FaceRecognition.entity.Role;
 import com.enclave.FaceRecognition.entity.User;
 import com.enclave.FaceRecognition.entity.UserImage;
 import com.enclave.FaceRecognition.exception.*;
+import com.enclave.FaceRecognition.entity.UserImage;
+import com.enclave.FaceRecognition.exception.*;
 import com.enclave.FaceRecognition.mapper.UserMapper;
 import com.enclave.FaceRecognition.mapper.UserRecognitionMapper;
+import com.enclave.FaceRecognition.repository.UserImageRepository;
 import com.enclave.FaceRecognition.repository.UserImageRepository;
 import com.enclave.FaceRecognition.repository.UserRepository;
 import com.enclave.FaceRecognition.repository.httpclient.PythonClient;
@@ -50,7 +53,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.MethodParameter;
+import org.springframework.http.HttpStatus;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -73,6 +79,7 @@ import java.util.UUID;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Period;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -184,6 +191,8 @@ public class UserService {
             UserRecognitionResponse user = UserRecognitionMapper.fromPythonResponse(pythonResponse.getUser());
 //            User userCurrent = userRepository.findById(user.getUserID()).orElseThrow(() ->  new UserNotFoundException("User not found"));
 //            user.setUserName(userCurrent.getFirstName());
+//            User userCurrent = userRepository.findById(user.getUserID()).orElseThrow(() ->  new UserNotFoundException("User not found"));
+//            user.setUserName(userCurrent.getFirstName());
             return PythonResponse.<UserRecognitionResponse>builder()
                     .status(pythonResponse.getStatus())
                     .message(pythonResponse.getMessage())
@@ -191,6 +200,33 @@ public class UserService {
                     .user(user)
                     .build();
 
+
+        } catch (FeignException.NotFound e) {
+            return PythonResponse.<UserRecognitionResponse>builder()
+                    .status(e.status())
+                    .message("No faces detected in the image")
+                    .success(false)
+                    .build();
+        }catch (FeignException e) {
+            if (e.status() == 411){
+                return PythonResponse.<UserRecognitionResponse>builder()
+                        .status(e.status())
+                        .message("No faces detected in the image")
+                        .success(false)
+                        .build();
+            }
+            if (e.status() == 400){
+                return PythonResponse.<UserRecognitionResponse>builder()
+                        .status(e.status())
+                        .message("Face(s) detected but not recognized")
+                        .success(false)
+                        .build();
+            }
+            return PythonResponse.<UserRecognitionResponse>builder()
+                    .status(e.status())
+                    .message(e.getMessage())
+                    .success(false)
+                    .build();
 
         } catch (FeignException.NotFound e) {
             return PythonResponse.<UserRecognitionResponse>builder()
