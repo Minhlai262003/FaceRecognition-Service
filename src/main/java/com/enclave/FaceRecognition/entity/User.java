@@ -32,9 +32,16 @@ public class User {
     String password;
     @Enumerated(EnumType.STRING)
     Role role;
+    @Access(AccessType.FIELD)
+    @Column(name = "is_active")
+    boolean active;
+    @Access(AccessType.FIELD)
+    @Column(name = "is_verified")
+    boolean verified;
     @CreationTimestamp
     LocalDateTime createdAt;
     @UpdateTimestamp
     LocalDateTime updatedAt;
+
 }
 

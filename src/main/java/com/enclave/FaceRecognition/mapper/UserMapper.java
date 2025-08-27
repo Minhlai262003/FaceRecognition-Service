@@ -17,8 +17,12 @@ public interface UserMapper {
     @Mapping(source = "lastName", target = "lastName")
     @Mapping(source = "phoneNumber", target = "phoneNumber")
     @Mapping(source = "birthDay", target = "birthDay")
+    @Mapping(target = "active", source = "active")
+    @Mapping(target = "verified", source = "verified")
     User toUser(UserCreateRequest request);
 
+    @Mapping(source = "active", target = "isActive")
+    @Mapping(source = "verified", target = "isVerified")
     UserResponse toUserResponse(User user);
 
     default Gender mapGender(String gender) {
