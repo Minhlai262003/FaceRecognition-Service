@@ -4,6 +4,7 @@ import com.enclave.FaceRecognition.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -14,4 +15,7 @@ public interface UserRepository extends JpaRepository<User, String> {
     boolean existsByPhoneNumber(String phoneNumber);
     boolean existsByEmail(String email);
     Optional<User> findById(String id);
+    List<User> findAllByVerified(boolean verified);
+    List<User> findAllByVerifiedOrderByFirstNameAsc(boolean verified);
+
 }

@@ -1,5 +1,6 @@
 package com.enclave.FaceRecognition.security;
 
+import com.enclave.FaceRecognition.exception.BadCredentialsException;
 import com.enclave.FaceRecognition.service.JwtService;
 import com.nimbusds.jwt.JWTClaimsSet;
 import jakarta.servlet.FilterChain;
@@ -7,7 +8,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.authentication.BadCredentialsException;
+
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -33,7 +34,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String jwt = parseJwt(request);
 
-        if (jwt != null) {
+            if (jwt != null) {
             if (!jwtService.validateJwtToken(jwt)) {
                 throw new BadCredentialsException("Invalid or expired JWT token");
             }

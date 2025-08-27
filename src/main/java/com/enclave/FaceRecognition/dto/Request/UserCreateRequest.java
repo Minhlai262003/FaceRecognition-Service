@@ -1,9 +1,7 @@
 package com.enclave.FaceRecognition.dto.Request;
 
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -49,6 +47,11 @@ public class UserCreateRequest {
     @Schema(description = "Defines the user's role in the system. Accepted values: 'admin' or 'user'.")
     String role;
 
+    @NotNull(message = "Active field is required")
+    boolean active;
+
+    @NotNull(message = "Verified field is required")
+    boolean verified;
 
     @NotNull(message = "Face images are required")
     @NotEmpty(message = "Face images are required")

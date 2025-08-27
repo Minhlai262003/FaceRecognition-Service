@@ -37,6 +37,7 @@ import java.util.UUID;
 public class UserController {
     UserService userService;
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping(consumes = "multipart/form-data")
     public ApiResponse<String> createUser(@ModelAttribute @Valid UserCreateRequest request) {
         userService.createUser(request);
@@ -50,14 +51,23 @@ public class UserController {
     @PostMapping(path = "/recognize", consumes = "multipart/form-data")
     public ApiResponse<UserRecognitionResponse> recognize(@RequestParam("image") MultipartFile fileImage) {
         var response = userService.recognizeUser(fileImage);
-        return ApiResponse.<UserRecognitionResponse>builder()
-                .status(200)
-                .message(response.getMessage())
-                .success(response.getSuccess())
-                .data(response.getUser())
-                .build();
+        try {
+            return ApiResponse.<UserRecognitionResponse>builder()
+                    .status(200)
+                    .message(response.getMessage())
+                    .success(response.getSuccess())
+                    .data(response.getUser())
+                    .build();
+        }catch (Exception ex){
+            return ApiResponse.<UserRecognitionResponse>builder()
+                    .status(200)
+                    .message(response.getMessage())
+                    .success(response.getSuccess())
+                    .build();
+        }
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @Hidden
     @DeleteMapping("/{id}")
     public ApiResponse<String> deleteUser(@PathVariable String id) {
@@ -68,10 +78,25 @@ public class UserController {
                 .success(true)
                 .build();
     }
+
+    @PreAuthorize("hasRole('ADMIN')")
     @Hidden
     @GetMapping
     public ApiResponse<List<UserResponse>> getAllUsers(){
         List<UserResponse> users = userService.getAllUsers();
+        return ApiResponse.<List<UserResponse>>builder()
+                .status(200)
+                .message("Success")
+                .success(true)
+                .data(users)
+                .build();
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @Hidden
+    @GetMapping("/not-verified")
+    public ApiResponse<List<UserResponse>> getAllUsersNotVerified(){
+        List<UserResponse> users = userService.getAllUsersNotVerified();
         return ApiResponse.<List<UserResponse>>builder()
                 .status(200)
                 .message("Success")
@@ -103,5 +128,37 @@ public class UserController {
                 .message("Update user successful")
                 .success(true)
                 .data(null).build();
+    }
+
+    @PostMapping(path = "/self-create-user", consumes = "multipart/form-data")
+    public ApiResponse<String> selfCreateUser(@ModelAttribute @Valid UserCreateRequest request) {
+        userService.selfCreateUser(request);
+        return ApiResponse.<String>builder()
+                .status(201)
+                .message("User created successfully")
+                .success(true)
+                .build();
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/self-create-user/{id}")
+    public ApiResponse<String> refuseCreateUser(@PathVariable("id") String userId) {
+        userService.refuseCreateUser(userId);
+        return ApiResponse.<String>builder()
+                .status(200)
+                .message("refuse successfully")
+                .success(true)
+                .build();
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping(path = "/self-create-user/{id}/verify")
+    public ApiResponse<String> verifyCreatUser(@PathVariable("id") String userId) {
+        userService.verifiedCreateUser(userId);
+        return ApiResponse.<String>builder()
+                .status(200)
+                .message("verify successfully")
+                .success(true)
+                .build();
     }
 }

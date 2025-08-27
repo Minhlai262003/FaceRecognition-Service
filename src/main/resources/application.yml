@@ -17,7 +17,8 @@ spring:
     multipart:
       max-file-size: 100MB
       max-request-size: 100MB
-
+file:
+  upload-dir: D:\enclave_project\enclave_welcome_project\springboot-project\enclave-welcome-spring-boot-service\uploads
 jwt:
   signerKey: "MySuperSecretKeyThatIsLongEnough123!"
   access-duration: 3600000
