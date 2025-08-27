@@ -44,8 +44,8 @@ public class SecurityConfig {
             "/swagger-ui.html",
             "/topics/{id}",
             "/topics/**",
-            "/topics/*/words/**"
-
+            "/topics/*/words/**",
+            "/users/self-create-user",
     };
 
     @Bean
