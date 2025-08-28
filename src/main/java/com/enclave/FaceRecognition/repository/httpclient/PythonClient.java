@@ -4,6 +4,7 @@ package com.enclave.FaceRecognition.repository.httpclient;
 import com.enclave.FaceRecognition.configuration.FeignClientConfig;
 import com.enclave.FaceRecognition.dto.Request.PythonUserCreationRequest;
 import com.enclave.FaceRecognition.dto.Response.PythonResponse;
+import com.enclave.FaceRecognition.dto.Response.UnknownFacesData;
 import com.enclave.FaceRecognition.dto.Response.UserPythonResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.MediaType;
@@ -27,4 +28,13 @@ public interface PythonClient {
     PythonResponse<UserPythonResponse> recognize(
             @RequestPart("image") MultipartFile fileImage
     );
+    
+    @GetMapping(value = "/api/unknown-faces")
+    PythonResponse<UnknownFacesData> getUnknownFaces(
+            @RequestParam("page") int page,
+            @RequestParam("per_page") int perPage
+    );
+    
+    @GetMapping(value = "/api/unknown-faces/file/{filename}")
+    byte[] getUnknownFaceImage(@PathVariable("filename") String filename);
 }
