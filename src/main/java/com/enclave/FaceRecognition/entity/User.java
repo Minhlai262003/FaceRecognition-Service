@@ -34,10 +34,10 @@ public class User {
     Role role;
     @Access(AccessType.FIELD)
     @Column(name = "is_active")
-    boolean active;
+    Boolean active;
     @Access(AccessType.FIELD)
     @Column(name = "is_verified")
-    boolean verified;
+    Boolean verified;
     @CreationTimestamp
     LocalDateTime createdAt;
     @UpdateTimestamp

@@ -13,7 +13,7 @@ server:
 spring:
 
   profiles:
-    active: ${SPRING_PROFILE:prod}
+    active: ${SPRING_PROFILE:dev}
   servlet:
     multipart:
       max-file-size: 100MB

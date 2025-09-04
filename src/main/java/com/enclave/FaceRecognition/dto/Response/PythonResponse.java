@@ -14,4 +14,6 @@ public class PythonResponse <T> {
     int status;
     Boolean success;
     T user;
+    T data;
+    T response_data;
 }

@@ -30,7 +30,7 @@ public class UnknownController {
         return unknownService.getUnknownFaces(page, perPage);
     }
 
-    @GetMapping("/file/{filename}")
+    @GetMapping(path = "/file/{filename}")
     public ResponseEntity<byte[]> getUnknownFaceImage(@PathVariable String filename) {
         return unknownService.getUnknownFaceImage(filename);
     }

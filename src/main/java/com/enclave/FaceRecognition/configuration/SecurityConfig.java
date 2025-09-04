@@ -47,6 +47,7 @@ public class SecurityConfig {
             "/topics/**",
             "/topics/*/words/**",
             "/users/self-create-user",
+            "/api/unknown-faces/**",
     };
 
     @Bean

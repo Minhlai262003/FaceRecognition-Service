@@ -28,11 +28,23 @@ public class UnknownService {
         try {
             PythonResponse<UnknownFacesData> pythonResponse = pythonClient.getUnknownFaces(page, perPage);
             
+            // Get data from 'response_data' field from Python response
+            UnknownFacesData responseData = pythonResponse.getResponse_data();
+            
+            // Fix the image URLs to include the context path
+            if (responseData != null && responseData.getImages() != null) {
+                responseData.getImages().forEach(image -> {
+                    if (image.getImage() != null && image.getImage().startsWith("/api/unknown-faces/file/")) {
+                        image.setImage("/enclave" + image.getImage());
+                    }
+                });
+            }
+            
             return ApiResponse.<UnknownFacesData>builder()
                     .success(pythonResponse.getSuccess())
                     .message(pythonResponse.getMessage())
                     .status(pythonResponse.getStatus())
-                    .data(pythonResponse.getUser())
+                    .data(responseData)
                     .build();
         } catch (FeignException e) {
             log.error("Error getting unknown faces: {}", e.getMessage());
