@@ -1,6 +1,5 @@
 package com.enclave.FaceRecognition.dto.Response;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import lombok.*;
@@ -8,7 +7,6 @@ import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-
 
 @Data
 @Builder
@@ -19,10 +17,9 @@ import java.time.LocalDateTime;
         "id", "email", "firstName", "lastName", "phoneNumber", "birthDay",
         "gender", "role",
         "isActive", "isVerified",
-        "avatar",
         "createdAt", "updatedAt"
 })
-public class UserResponse {
+public class AccountRegisteredResponse {
     String id;
     String email;
     String firstName;
@@ -35,7 +32,6 @@ public class UserResponse {
     boolean isActive;
     @JsonProperty("isVerified")
     boolean isVerified;
-    @JsonInclude(JsonInclude.Include.NON_NULL)
     String avatar;
     LocalDateTime createdAt;
     LocalDateTime updatedAt;
