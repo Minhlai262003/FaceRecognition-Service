@@ -23,6 +23,7 @@ public interface UserMapper {
 
     @Mapping(source = "active", target = "isActive")
     @Mapping(source = "verified", target = "isVerified")
+    @Mapping(target = "avatar", ignore = true)
     UserResponse toUserResponse(User user);
 
     default Gender mapGender(String gender) {

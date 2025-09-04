@@ -13,7 +13,7 @@ server:
 spring:
 
   profiles:
-    active: ${SPRING_PROFILE:prod}
+    active: ${SPRING_PROFILE:dev}
   servlet:
     multipart:
       max-file-size: 100MB
@@ -32,3 +32,7 @@ security:
 springdoc:
   swagger-ui:
     defaultModelsExpandDepth: -1
+
+openweathermap:
+  api:
+    key: ea44332d38d86b1345a16a3b277b7a04

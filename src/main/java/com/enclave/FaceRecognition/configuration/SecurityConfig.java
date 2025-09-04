@@ -38,7 +38,6 @@ public class SecurityConfig {
 
     private static final String[] PUBLIC_ENDPOINTS = {
             "/auth/login",
-            "/users",
             "/users/recognize",
             "/v3/api-docs/**",
             "/swagger-ui/**",
@@ -47,6 +46,8 @@ public class SecurityConfig {
             "/topics/**",
             "/topics/*/words/**",
             "/users/self-create-user",
+            "/uploads/**",
+            "/weather/**"
     };
 
     @Bean
