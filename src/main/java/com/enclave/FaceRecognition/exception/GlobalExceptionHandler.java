@@ -5,8 +5,10 @@ import feign.FeignException;
 import org.springframework.boot.context.config.ConfigDataResourceNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.orm.jpa.JpaSystemException;
 import org.springframework.security.access.AccessDeniedException;
-
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -146,5 +148,21 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleAccessDenied(AccessDeniedException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(new ApiResponse<>(403, "Access Denied: You do not have permission to access this resource", false, null));
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleUnsupportedMediaType(HttpMediaTypeNotSupportedException ex) {
+        return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+                .body(new ApiResponse<>(415, "Content-Type not supported. Please use 'application/json' for this endpoint", false, null));
+    }
+
+    @ExceptionHandler(JpaSystemException.class)
+    public ResponseEntity<ApiResponse<Void>> handleJpaSystemException(JpaSystemException ex) {
+        String message = "Database mapping error";
+        if (ex.getMessage().contains("Null value was assigned to a property") && ex.getMessage().contains("primitive type")) {
+            message = "Database contains null values for required fields. Please check your database data.";
+        }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ApiResponse<>(500, message, false, null));
     }
 }
