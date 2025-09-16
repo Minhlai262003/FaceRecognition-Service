@@ -4,6 +4,7 @@ import com.enclave.FaceRecognition.dto.Request.PythonUserCreationRequest;
 import com.enclave.FaceRecognition.dto.Request.UserCreateRequest;
 import com.enclave.FaceRecognition.dto.Request.UserUpdateRequest;
 import com.enclave.FaceRecognition.dto.Response.PythonResponse;
+import com.enclave.FaceRecognition.dto.Response.UserPythonResponse;
 import com.enclave.FaceRecognition.dto.Response.UserRecognitionResponse;
 import com.enclave.FaceRecognition.dto.Response.UserResponse;
 import com.enclave.FaceRecognition.entity.Gender;
@@ -25,16 +26,20 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.MethodParameter;
+import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Period;
@@ -45,42 +50,33 @@ import java.util.UUID;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class UserService {
-    private final UserRepository userRepository;
-    private final UserMapper userMapper;
-    private final PythonClient pythonClient;
-    private final ObjectMapper objectMapper;
-    private final UserImageRepository userImageRepository;
-
-    @Value("${file.upload-dir:D:/random_project/enclave-welcome-spring-boot-service/uploads}")
-    private String uploadDir;
-
-    public UserService(UserRepository userRepository, UserMapper userMapper, 
-                      PythonClient pythonClient, ObjectMapper objectMapper, 
-                      UserImageRepository userImageRepository) {
-        this.userRepository = userRepository;
-        this.userMapper = userMapper;
-        this.pythonClient = pythonClient;
-        this.objectMapper = objectMapper;
-        this.userImageRepository = userImageRepository;
-    }
-
+    final UserRepository userRepository;
+    final UserMapper userMapper;
+    final PythonClient pythonClient;
+    final ObjectMapper objectMapper;
+    final UserImageRepository userImageRepository;
+    @Value("${file.upload-dir}")
+    String uploadDir;
     @Transactional
-    public void createUser(UserCreateRequest request) {
-        if (userRepository.existsByEmail(request.getEmail())) {
+    public void createUser(UserCreateRequest request){
+        if(userRepository.existsByEmail(request.getEmail())) {
             throw new DuplicateFieldException("Email already exists");
         }
-        if (userRepository.existsByPhoneNumber(request.getPhoneNumber())) {
-            throw new DuplicateFieldException("Phone number already exists");
-        }
-        if (request.getBirthDay() == null) {
-            throw new AppException(ErrorCode.DATE_OF_BIRTH_REQUIRED);
-        }
 
-        LocalDate birthDate = request.getBirthDay();
-        int age = Period.between(birthDate, LocalDate.now()).getYears();
-        if (age < 18) {
-            throw new AppException(ErrorCode.AGE_UNDER_18);
+        if (userRepository.existsByPhoneNumber(request.getPhoneNumber()))
+            throw new DuplicateFieldException("Phone number already exists");
+
+        if (request.getBirthDay() != null) {
+            LocalDate birthDate = request.getBirthDay();
+            LocalDate now = LocalDate.now();
+            int age = Period.between(birthDate, now).getYears();
+
+            if (age < 18) {
+                throw new AppException(ErrorCode.AGE_UNDER_18);
+            }
         }
 
         try {
@@ -89,84 +85,29 @@ public class UserService {
             PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
             user.setPassword(passwordEncoder.encode(password));
             user.setCreatedAt(LocalDateTime.now());
-            User savedUser = userRepository.save(user);
+            User userInfo = userRepository.save(user);
 
-            PythonUserCreationRequest pythonRequest = PythonUserCreationRequest.builder()
-                    .employeeId(savedUser.getId())
-                    .name(savedUser.getFirstName())
-                    .department(savedUser.getRole().name())
+            PythonUserCreationRequest pythonUserCreationRequest = PythonUserCreationRequest.builder()
+                    .name(userInfo.getFirstName())
+                    .employeeId(userInfo.getId())
+                    .department(userInfo.getRole().name())
                     .build();
 
+
             try {
-                Object pythonResponse = pythonClient.registerUser(
-                        pythonRequest.getEmployeeId(),
-                        pythonRequest.getName(),
-                        pythonRequest.getDepartment(),
+                var pythonResponse = pythonClient.registerUser(
+                        pythonUserCreationRequest.getEmployeeId(),
+                        pythonUserCreationRequest.getName(),
+                        pythonUserCreationRequest.getDepartment(),
                         request.getFaceImages()
                 );
                 log.info("Python response: {}", pythonResponse);
             } catch (FeignException.BadRequest e) {
+                log.error("Error setting department: {}", e.getMessage());
+                String responseBody = e.contentUTF8();
                 String errorMessage = handlePythonServiceResponse(e);
                 log.warn("Python service error response: {}", errorMessage);
                 throw new AppException(ErrorCode.PYTHON_SERVICE_ERROR);
-            }
-        } catch (RuntimeException ex) {
-            throw ex;
-        } catch (Exception ex) {
-            throw new RuntimeException("Error creating user", ex);
-        }
-    }
-
-    @Transactional
-    public void selfCreateUser(UserCreateRequest userCreateRequest) {
-        if (userCreateRequest.isVerified()) {
-            throw new BadRequestException("The verified field have to be false");
-        }
-        if (userRepository.existsByEmail(userCreateRequest.getEmail())) {
-            throw new DuplicateFieldException("Email already exists");
-        }
-        if (userRepository.existsByPhoneNumber(userCreateRequest.getPhoneNumber())) {
-            throw new DuplicateFieldException("Phone number already exists");
-        }
-
-        if (userCreateRequest.getBirthDay() != null) {
-            LocalDate birthDate = userCreateRequest.getBirthDay();
-            int age = Period.between(birthDate, LocalDate.now()).getYears();
-            if (age < 18) {
-                throw new AppException(ErrorCode.AGE_UNDER_18);
-            }
-        }
-
-        try {
-            User user = userMapper.toUser(userCreateRequest);
-            String password = "enclave123";
-            PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
-            user.setPassword(passwordEncoder.encode(password));
-            user.setCreatedAt(LocalDateTime.now());
-            userRepository.save(user);
-
-            File uploadDirFile = new File(uploadDir).getAbsoluteFile();
-            if (!uploadDirFile.exists()) {
-                boolean created = uploadDirFile.mkdirs();
-                if (!created) {
-                    throw new RuntimeException("Cannot create upload directory: " + uploadDirFile.getAbsolutePath());
-                }
-            }
-
-            for (MultipartFile file : userCreateRequest.getFaceImages()) {
-                String fileName = UUID.randomUUID() + "_" + file.getOriginalFilename();
-                String filePath = uploadDir + "/" + fileName;
-
-                File dest = new File(filePath);
-                dest.getParentFile().mkdirs();
-                file.transferTo(dest);
-
-                UserImage userImage = UserImage.builder()
-                        .path(filePath)
-                        .user(user)
-                        .build();
-
-                userImageRepository.save(userImage);
             }
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -177,28 +118,35 @@ public class UserService {
     public PythonResponse<UserRecognitionResponse> recognizeUser(MultipartFile fileImage) {
         try {
             var pythonResponse = pythonClient.recognize(fileImage);
+//            if (Boolean.FALSE.equals(pythonResponse.getSuccess())) {
+//                throw new PythonServiceValidationException(pythonResponse.getMessage());
+//            }
             UserRecognitionResponse user = UserRecognitionMapper.fromPythonResponse(pythonResponse.getUser());
+//            User userCurrent = userRepository.findById(user.getUserID()).orElseThrow(() ->  new UserNotFoundException("User not found"));
+//            user.setUserName(userCurrent.getFirstName());
             return PythonResponse.<UserRecognitionResponse>builder()
                     .status(pythonResponse.getStatus())
                     .message(pythonResponse.getMessage())
                     .success(pythonResponse.getSuccess())
                     .user(user)
                     .build();
+
+
         } catch (FeignException.NotFound e) {
             return PythonResponse.<UserRecognitionResponse>builder()
                     .status(e.status())
                     .message("No faces detected in the image")
                     .success(false)
                     .build();
-        } catch (FeignException e) {
-            if (e.status() == 411) {
+        }catch (FeignException e) {
+            if (e.status() == 411){
                 return PythonResponse.<UserRecognitionResponse>builder()
                         .status(e.status())
                         .message("No faces detected in the image")
                         .success(false)
                         .build();
             }
-            if (e.status() == 400) {
+            if (e.status() == 400){
                 return PythonResponse.<UserRecognitionResponse>builder()
                         .status(e.status())
                         .message("Face(s) detected but not recognized")
@@ -213,11 +161,18 @@ public class UserService {
         }
     }
 
+
+
     public String handlePythonServiceResponse(FeignException.BadRequest e) {
         String errorMessage = "Failed to set department in Python service";
         try {
+
             String responseBody = e.contentUTF8();
+
+            // Parse JSON response
             JsonNode jsonNode = objectMapper.readTree(responseBody);
+
+
             if (jsonNode.has("status")) {
                 errorMessage = jsonNode.get("status").asText();
             } else {
@@ -231,143 +186,55 @@ public class UserService {
 
     @Transactional
     public void deleteUserById(String id) {
-        try {
+        try{
             if (!userRepository.existsById(id)) {
                 throw new AppException(ErrorCode.USER_NOT_EXISTED);
             }
             pythonClient.deleteUser(id);
             userRepository.deleteById(id);
-        } catch (FeignException.NotFound e) {
+
+        }catch (FeignException.NotFound e) {
             userRepository.deleteById(id);
-        }
-    }
-
-    @Transactional
-    public void refuseCreateUser(String userId) {
-        try {
-            User user = userRepository.findById(userId)
-                    .orElseThrow(() -> new BadRequestException("User not found"));
-
-            List<UserImage> listUserImages = userImageRepository.findByUserId(user.getId());
-
-            for (UserImage userImage : listUserImages) {
-                File file = new File(userImage.getPath());
-                if (file.exists()) {
-                    boolean deleted = file.delete();
-                    if (!deleted) {
-                        System.err.println("Failed to delete file: " + file.getAbsolutePath());
-                    }
-                }
-            }
-            userImageRepository.deleteAll(listUserImages);
-            userRepository.deleteById(user.getId());
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            throw new RuntimeException("Error refusing user with id: " + userId, ex);
-        }
-    }
-
-    @Transactional
-    public void verifiedCreateUser(String userId) {
-        try {
-            User user = userRepository.findById(userId)
-                    .orElseThrow(() -> new BadRequestException("User not found"));
-
-            List<UserImage> listUserImages = userImageRepository.findByUserId(user.getId());
-            List<MultipartFile> listFaceImages = new ArrayList<>();
-            for (UserImage userImage : listUserImages) {
-                File file = new File(userImage.getPath());
-                if (file.exists() && file.isFile()) {
-                    try (FileInputStream fis = new FileInputStream(file)) {
-                        String fileName = file.getName();
-                        String contentType = "application/octet-stream";
-
-                        if (fileName.endsWith(".jpg") || fileName.endsWith(".jpeg")) {
-                            contentType = "image/jpeg";
-                        } else if (fileName.endsWith(".png")) {
-                            contentType = "image/png";
-                        } else if (fileName.endsWith(".gif")) {
-                            contentType = "image/gif";
-                        }
-
-                        MultipartFile multipartFile = new MockMultipartFile(
-                                fileName,
-                                fileName,
-                                contentType,
-                                fis
-                        );
-                        listFaceImages.add(multipartFile);
-
-                    } catch (IOException e) {
-                        log.error("Failed to read file: {}", file.getAbsolutePath(), e);
-                    }
-                } else {
-                    log.warn("File not found or not a file: {}", userImage.getPath());
-                }
-            }
-
-            if (!listFaceImages.isEmpty()) {
-                PythonUserCreationRequest pythonRequest = PythonUserCreationRequest.builder()
-                        .name(user.getFirstName())
-                        .employeeId(user.getId())
-                        .department(user.getRole().name())
-                        .build();
-
-                try {
-                    Object pythonResponse = pythonClient.registerUser(
-                            pythonRequest.getEmployeeId(),
-                            pythonRequest.getName(),
-                            pythonRequest.getDepartment(),
-                            listFaceImages
-                    );
-                    log.info("Python response: {}", pythonResponse);
-                    for (UserImage userImage : listUserImages) {
-                        File file = new File(userImage.getPath());
-                        if (file.exists() && file.isFile()) {
-                            boolean deleted = file.delete();
-                            if (!deleted) {
-                                log.warn("Failed to delete file: {}", file.getAbsolutePath());
-                            }
-                        }
-                    }
-                    userImageRepository.deleteAll(listUserImages);
-                    user.setVerified(true);
-                    user.setActive(true);
-                    userRepository.save(user);
-                } catch (FeignException.BadRequest e) {
-                    String errorMessage = handlePythonServiceResponse(e);
-                    log.warn("Python service error response: {}", errorMessage);
-                    throw new AppException(ErrorCode.PYTHON_SERVICE_ERROR);
-                }
-            }
-
-        } catch (Exception ex) {
-            log.error("Error creating verified user files for userId: {}", userId, ex);
-            throw new RuntimeException("Error creating verified user files for userId: " + userId, ex);
         }
     }
 
     public List<UserResponse> getAllUsers() {
         List<User> users = userRepository.findAllByVerifiedOrderByFirstNameAsc(true);
+
         return users.stream()
                 .map(userMapper::toUserResponse)
                 .toList();
     }
-
     public List<UserResponse> getAllUsersNotVerified() {
         List<User> users = userRepository.findAllByVerified(false);
+
         return users.stream()
-                .map(userMapper::toUserResponse)
+                .map(user -> {
+                    UserResponse response = userMapper.toUserResponse(user);
+                    List<UserImage> listUserImages = userImageRepository.findByUserId(user.getId());
+                    String fullPath = listUserImages.get(0).getPath();
+                    String fileName = Paths.get(fullPath).getFileName().toString();
+                    response.setAvatar(fileName);
+                    return response;
+                })
                 .toList();
     }
 
+
+//    public List<UserResponse> getAllUsersNotVerified() {
+//        List<User> users = userRepository.findAllByVerified(false);
+//
+//        return users.stream()
+//                .map(userMapper::toUserResponse)
+//                .toList();
+//    }
+
     public UserResponse getUserById(String id) {
-        UUID.fromString(id);
+        UUID uuid = UUID.fromString(id);
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         return userMapper.toUserResponse(user);
     }
-
     @Transactional
     public void updateUser(String id, UserUpdateRequest userUpdateRequest) {
         User existingUser = userRepository.findById(id)
@@ -406,6 +273,170 @@ public class UserService {
                     }
                 });
 
+
         userRepository.save(existingUser);
+    }
+
+    @Transactional
+    public void selfCreateUser(UserCreateRequest userCreateRequest) {
+        if(userCreateRequest.isVerified()){
+            throw new BadRequestException("The verified field have to be false");
+        }
+        if(userRepository.existsByEmail(userCreateRequest.getEmail())) {
+            throw new DuplicateFieldException("Email already exists");
+        }
+
+        if (userRepository.existsByPhoneNumber(userCreateRequest.getPhoneNumber()))
+            throw new DuplicateFieldException("Phone number already exists");
+
+        if (userCreateRequest.getBirthDay() != null) {
+            LocalDate birthDate = userCreateRequest.getBirthDay();
+            LocalDate now = LocalDate.now();
+            int age = Period.between(birthDate, now).getYears();
+
+            if (age < 18) {
+                throw new AppException(ErrorCode.AGE_UNDER_18);
+            }
+        }
+
+        try {
+            User user = userMapper.toUser(userCreateRequest);
+            String password = "enclave123";
+            PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
+            user.setPassword(passwordEncoder.encode(password));
+            user.setCreatedAt(LocalDateTime.now());
+            userRepository.save(user);
+
+            File uploadDirFile = new File(uploadDir).getAbsoluteFile();
+            if (!uploadDirFile.exists()) {
+                boolean created = uploadDirFile.mkdirs();
+                if (!created) {
+                    throw new RuntimeException("Cannot create upload directory: " + uploadDirFile.getAbsolutePath());
+                }
+            }
+
+            for (MultipartFile file : userCreateRequest.getFaceImages()) {
+                String fileName = UUID.randomUUID() + "_" + file.getOriginalFilename();
+                String filePath = uploadDir + "/" + fileName;
+
+                File dest = new File(filePath);
+                dest.getParentFile().mkdirs();
+                file.transferTo(dest);
+
+                // Lưu path vào DB
+                UserImage userImage = UserImage.builder()
+                        .path(filePath)
+                        .user(user)
+                        .build();
+
+                userImageRepository.save(userImage);
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            throw new RuntimeException("Error mapping UserCreateRequest to User", ex);
+        }
+    }
+    @Transactional
+    public void refuseCreateUser(String userId) {
+        try {
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new BadRequestException("User not found"));
+
+            List<UserImage> listUserImages = userImageRepository.findByUserId(user.getId());
+
+            for(UserImage userImage : listUserImages){
+                File file = new File(userImage.getPath());
+                if(file.exists()){
+                    boolean delete = file.delete();
+                    if(!delete){
+                        System.err.println("Failed to delete file: " + file.getAbsolutePath());
+                    }
+                }
+            }
+            userImageRepository.deleteAll(listUserImages);
+            userRepository.deleteById(user.getId());
+        }catch (Exception ex) {
+            ex.printStackTrace();
+            throw new RuntimeException("Error refusing user with id: " + userId, ex);
+        }
+    }
+
+    public void verifiedCreateUser(String userId) {
+        try {
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new BadRequestException("User not found"));
+
+            List<UserImage> listUserImages = userImageRepository.findByUserId(user.getId());
+            List<MultipartFile> listFaceImages = new ArrayList<>();
+            for (UserImage userImage : listUserImages) {
+                File file = new File(userImage.getPath());
+                if (file.exists() && file.isFile()) {
+                    try (FileInputStream fis = new FileInputStream(file)) {
+                        String fileName = file.getName();
+                        String contentType = "application/octet-stream"; // fallback
+
+                        if (fileName.endsWith(".jpg") || fileName.endsWith(".jpeg")) {
+                            contentType = "image/jpeg";
+                        } else if (fileName.endsWith(".png")) {
+                            contentType = "image/png";
+                        } else if (fileName.endsWith(".gif")) {
+                            contentType = "image/gif";
+                        }
+
+                        MultipartFile multipartFile = new MockMultipartFile(
+                                fileName,
+                                fileName,
+                                contentType,
+                                fis
+                        );
+                        listFaceImages.add(multipartFile);
+
+                    } catch (IOException e) {
+                        log.error("Failed to read file: {}", file.getAbsolutePath(), e);
+                    }
+                } else {
+                    log.warn("File not found or not a file: {}", userImage.getPath());
+                }
+            }
+
+            if (!listFaceImages.isEmpty()) {
+                PythonUserCreationRequest pythonRequest = PythonUserCreationRequest.builder()
+                        .name(user.getFirstName())
+                        .employeeId(user.getId())
+                        .department(user.getRole().name())
+                        .build();
+
+                try {
+                    var pythonResponse = pythonClient.registerUser(
+                            pythonRequest.getEmployeeId(),
+                            pythonRequest.getName(),
+                            pythonRequest.getDepartment(),
+                            listFaceImages
+                    );
+                    log.info("Python response: {}", pythonResponse);
+                    for (UserImage userImage : listUserImages) {
+                        File file = new File(userImage.getPath());
+                        if (file.exists() && file.isFile()) {
+                            boolean deleted = file.delete();
+                            if (!deleted) {
+                                log.warn("Failed to delete file: {}", file.getAbsolutePath());
+                            }
+                        }
+                    }
+                    userImageRepository.deleteAll(listUserImages);
+                    user.setVerified(true);
+                    user.setActive(true);
+                    userRepository.save(user);
+                } catch (FeignException.BadRequest e) {
+                    String errorMessage = handlePythonServiceResponse(e);
+                    log.warn("Python service error response: {}", errorMessage);
+                    throw new AppException(ErrorCode.PYTHON_SERVICE_ERROR);
+                }
+            }
+
+        } catch (Exception ex) {
+            log.error("Error creating verified user files for userId: {}", userId, ex);
+            throw new RuntimeException("Error creating verified user files for userId: " + userId, ex);
+        }
     }
 }
