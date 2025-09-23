@@ -3,10 +3,7 @@ package com.enclave.FaceRecognition.service;
 import com.enclave.FaceRecognition.dto.Request.PythonUserCreationRequest;
 import com.enclave.FaceRecognition.dto.Request.UserCreateRequest;
 import com.enclave.FaceRecognition.dto.Request.UserUpdateRequest;
-import com.enclave.FaceRecognition.dto.Response.PythonResponse;
-import com.enclave.FaceRecognition.dto.Response.UserPythonResponse;
-import com.enclave.FaceRecognition.dto.Response.UserRecognitionResponse;
-import com.enclave.FaceRecognition.dto.Response.UserResponse;
+import com.enclave.FaceRecognition.dto.Response.*;
 import com.enclave.FaceRecognition.entity.Gender;
 import com.enclave.FaceRecognition.entity.Role;
 import com.enclave.FaceRecognition.entity.User;
@@ -69,15 +66,15 @@ public class UserService {
         if (userRepository.existsByPhoneNumber(request.getPhoneNumber()))
             throw new DuplicateFieldException("Phone number already exists");
 
-        if (request.getBirthDay() != null) {
-            LocalDate birthDate = request.getBirthDay();
-            LocalDate now = LocalDate.now();
-            int age = Period.between(birthDate, now).getYears();
-
-            if (age < 18) {
-                throw new AppException(ErrorCode.AGE_UNDER_18);
-            }
-        }
+//        if (request.getBirthDay() != null) {
+//            LocalDate birthDate = request.getBirthDay();
+//            LocalDate now = LocalDate.now();
+//            int age = Period.between(birthDate, now).getYears();
+//
+//            if (age < 18) {
+//                throw new AppException(ErrorCode.AGE_UNDER_18);
+//            }
+//        }
 
         try {
             User user = userMapper.toUser(request);
@@ -115,45 +112,46 @@ public class UserService {
         }
     }
 
-    public PythonResponse<UserRecognitionResponse> recognizeUser(MultipartFile fileImage) {
+    public PythonResponse<UserResponse> recognizeUser(MultipartFile fileImage) {
         try {
             var pythonResponse = pythonClient.recognize(fileImage);
 //            if (Boolean.FALSE.equals(pythonResponse.getSuccess())) {
 //                throw new PythonServiceValidationException(pythonResponse.getMessage());
 //            }
             UserRecognitionResponse user = UserRecognitionMapper.fromPythonResponse(pythonResponse.getUser());
-//            User userCurrent = userRepository.findById(user.getUserID()).orElseThrow(() ->  new UserNotFoundException("User not found"));
+            User userCurrent = userRepository.findById(user.getUserID()).orElseThrow(() ->  new UserNotFoundException("User not found"));
 //            user.setUserName(userCurrent.getFirstName());
-            return PythonResponse.<UserRecognitionResponse>builder()
+            UserResponse userResponse =  userMapper.toUserResponse(userCurrent);
+            return PythonResponse.<UserResponse>builder()
                     .status(pythonResponse.getStatus())
                     .message(pythonResponse.getMessage())
                     .success(pythonResponse.getSuccess())
-                    .user(user)
+                    .user(userResponse)
                     .build();
 
 
         } catch (FeignException.NotFound e) {
-            return PythonResponse.<UserRecognitionResponse>builder()
+            return PythonResponse.<UserResponse>builder()
                     .status(e.status())
                     .message("No faces detected in the image")
                     .success(false)
                     .build();
         }catch (FeignException e) {
             if (e.status() == 411){
-                return PythonResponse.<UserRecognitionResponse>builder()
+                return PythonResponse.<UserResponse>builder()
                         .status(e.status())
                         .message("No faces detected in the image")
                         .success(false)
                         .build();
             }
             if (e.status() == 400){
-                return PythonResponse.<UserRecognitionResponse>builder()
+                return PythonResponse.<UserResponse>builder()
                         .status(e.status())
                         .message("Face(s) detected but not recognized")
                         .success(false)
                         .build();
             }
-            return PythonResponse.<UserRecognitionResponse>builder()
+            return PythonResponse.<UserResponse>builder()
                     .status(e.status())
                     .message(e.getMessage())
                     .success(false)
@@ -289,15 +287,15 @@ public class UserService {
         if (userRepository.existsByPhoneNumber(userCreateRequest.getPhoneNumber()))
             throw new DuplicateFieldException("Phone number already exists");
 
-        if (userCreateRequest.getBirthDay() != null) {
-            LocalDate birthDate = userCreateRequest.getBirthDay();
-            LocalDate now = LocalDate.now();
-            int age = Period.between(birthDate, now).getYears();
-
-            if (age < 18) {
-                throw new AppException(ErrorCode.AGE_UNDER_18);
-            }
-        }
+//        if (userCreateRequest.getBirthDay() != null) {
+//            LocalDate birthDate = userCreateRequest.getBirthDay();
+//            LocalDate now = LocalDate.now();
+//            int age = Period.between(birthDate, now).getYears();
+//
+//            if (age < 18) {
+//                throw new AppException(ErrorCode.AGE_UNDER_18);
+//            }
+//        }
 
         try {
             User user = userMapper.toUser(userCreateRequest);
@@ -439,4 +437,30 @@ public class UserService {
             throw new RuntimeException("Error creating verified user files for userId: " + userId, ex);
         }
     }
+
+    public ApiResponse<Void> addFaceUser(String userId, List<String> faceImage) {
+        try {
+            userRepository.findById(userId)
+                    .orElseThrow(() -> new BadRequestException("User not found with id: " + userId));
+            if (faceImage == null || faceImage.isEmpty()) {
+                throw new BadRequestException("Face image must not be empty");
+            }
+            PythonResponse<UserPythonResponse> response = pythonClient.addFaceUser(userId, faceImage);
+
+            return ApiResponse.<Void>builder()
+                    .status(response.getStatus())
+                    .message(response.getMessage())
+                    .success(response.getSuccess())
+                    .build();
+
+        } catch (FeignException ex) {
+            log.error("Feign error while adding face for userId={}: {}", userId, ex.getMessage(), ex);
+            return ApiResponse.<Void>builder()
+                    .status(HttpStatus.BAD_GATEWAY.value())
+                    .message("Upstream service error: " + ex.getMessage())
+                    .success(false)
+                    .build();
+        }
+    }
+
 }

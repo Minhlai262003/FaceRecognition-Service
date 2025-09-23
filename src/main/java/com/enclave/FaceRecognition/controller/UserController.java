@@ -17,6 +17,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -49,17 +50,17 @@ public class UserController {
     }
 
     @PostMapping(path = "/recognize", consumes = "multipart/form-data")
-    public ApiResponse<UserRecognitionResponse> recognize(@RequestParam("image") MultipartFile fileImage) {
+    public ApiResponse<UserResponse> recognize(@RequestParam("image") MultipartFile fileImage) {
         var response = userService.recognizeUser(fileImage);
         try {
-            return ApiResponse.<UserRecognitionResponse>builder()
+            return ApiResponse.<UserResponse>builder()
                     .status(200)
                     .message(response.getMessage())
                     .success(response.getSuccess())
                     .data(response.getUser())
                     .build();
         }catch (Exception ex){
-            return ApiResponse.<UserRecognitionResponse>builder()
+            return ApiResponse.<UserResponse>builder()
                     .status(200)
                     .message(response.getMessage())
                     .success(response.getSuccess())
@@ -161,4 +162,11 @@ public class UserController {
                 .success(true)
                 .build();
     }
+    @PostMapping(path = "/face-data/{id}/add", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ApiResponse<Void> addFace(
+            @PathVariable("id") String userId,
+            @RequestPart("faceImage") List<String> faceImage) {
+        return userService.addFaceUser(userId, faceImage);
+    }
+
 }

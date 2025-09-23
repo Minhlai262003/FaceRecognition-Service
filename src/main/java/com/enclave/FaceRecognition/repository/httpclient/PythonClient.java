@@ -37,4 +37,6 @@ public interface PythonClient {
     
     @GetMapping(value = "/api/unknown-faces/file/{filename}")
     byte[] getUnknownFaceImage(@PathVariable("filename") String filename);
+    @PostMapping(value = "/face-data/{userId}/add", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    PythonResponse<UserPythonResponse> addFaceUser(@PathVariable("userId") String userId, @RequestPart("image") List<String> images);
 }
