@@ -11,7 +11,7 @@ app:
 
 security:
   cors:
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:https://welcome-enclave.local.hue-dev.top}
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:https://welcome-enclave.local.hue-dev.top,https://welcome-enclave-in.local.hue-dev.top}
 file:
   upload-dir: /app/uploads
 openweathermap:
