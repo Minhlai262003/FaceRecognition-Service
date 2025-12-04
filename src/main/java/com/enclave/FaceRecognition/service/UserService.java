@@ -57,6 +57,8 @@ public class UserService {
     final UserImageRepository userImageRepository;
     @Value("${file.upload-dir}")
     String uploadDir;
+    @Value("${file.avatar-dir}")
+    String avatarDir;
     @Transactional
     public void createUser(UserCreateRequest request){
         if(userRepository.existsByEmail(request.getEmail())) {
@@ -461,6 +463,45 @@ public class UserService {
                     .success(false)
                     .build();
         }
+    }
+    @Transactional
+    public void updateAvatar(String userId, MultipartFile avatar) {
+        User user = userRepository.findById(userId).orElseThrow(() -> new BadRequestException("User not found with id: " + userId));
+
+        if(avatar.isEmpty()) {
+            throw new BadRequestException("Avatar must not be empty");
+        }
+        String contentType = avatar.getContentType();
+        if(contentType == null || !contentType.equals("image/jpeg") && !contentType.equals("image/png")) {
+            throw new BadRequestException("Avatar must contain image/jpeg or image/png");
+        }
+        String fileName = avatar.getOriginalFilename();
+        if(fileName == null || !fileName.endsWith(".jpg") || !fileName.endsWith(".jpeg") || !fileName.endsWith(".png")) {
+            throw new BadRequestException("Avatar must contain image/jpeg or image/png");
+        }
+
+        File uploadDirFile = new File(avatarDir).getAbsoluteFile();
+        if (!uploadDirFile.exists()) {
+            boolean created = uploadDirFile.mkdirs();
+            if (!created) {
+                throw new RuntimeException("Cannot create upload directory: " + uploadDirFile.getAbsolutePath());
+            }
+        }
+        String fileNameString = UUID.randomUUID() + "_" + avatar.getOriginalFilename();
+        String filePath = avatarDir + "/" + fileNameString;
+
+        File dest = new File(filePath);
+        dest.getParentFile().mkdirs();
+        try {
+            avatar.transferTo(dest);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to save avatar file", e);
+        }
+
+        user.setAvatar(filePath);
+
+        userRepository.save(user);
+
     }
 
 }

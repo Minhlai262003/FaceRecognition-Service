@@ -42,6 +42,6 @@ public class User {
     LocalDateTime createdAt;
     @UpdateTimestamp
     LocalDateTime updatedAt;
-
+    String avatar;
 }
 

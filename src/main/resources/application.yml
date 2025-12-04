@@ -20,6 +20,7 @@ spring:
       max-request-size: 100MB
 file:
   upload-dir: D:\enclave_project\enclave_welcome_project\springboot-project\enclave-welcome-spring-boot-service\uploads
+  avatar-dir: D:\enclave_project\enclave_welcome_project\springboot-project\enclave-welcome-spring-boot-service\avatars
 jwt:
   signerKey: "MySuperSecretKeyThatIsLongEnough123!"
   access-duration: 3600000

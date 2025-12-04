@@ -168,5 +168,9 @@ public class UserController {
             @RequestPart("faceImage") List<String> faceImage) {
         return userService.addFaceUser(userId, faceImage);
     }
-
+    @PostMapping(path = "/update-avatar")
+    public ApiResponse<Void> updateAvatar(@PathVariable("userId") String userId, @RequestPart("avatar") MultipartFile avatar){
+        userService.updateAvatar(userId, avatar);
+        return ApiResponse.<Void>builder().success(true).message("update successful").status(200).build();
+    }
 }
